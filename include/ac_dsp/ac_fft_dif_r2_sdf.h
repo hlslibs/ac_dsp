@@ -26,9 +26,9 @@
 //
 //    Organization:
 //     The ac_fft_dif_r2_sdf class serves as a C++ interface to the core class. The
-//     fft_dif_r2_sdf_core class is generic and intended to work well even with SystemC
+//     ac_fft_dif_r2_sdf_core class is generic and intended to work well even with SystemC
 //     implementations in addition to the supplied C++ implementation. The core class
-//     instantiates delay stages as an objects of the 'fft_dif_r2_sdf_stage' class.
+//     instantiates delay stages as an objects of the 'ac_fft_dif_r2_sdf_stage' class.
 //     The stages are implemented as a cascaded Single Feedback structure.
 //
 //    Order of Input/Output:
@@ -85,7 +85,7 @@
 #include <ac_complex.h>
 
 //******************************************************************
-// class "fft_dif_r2_sdf_stage"
+// class "ac_fft_dif_r2_sdf_stage"
 // class has member functions--
 //
 // butterfly( )   -- Radix-2 Butterfly Structure
@@ -96,10 +96,10 @@
 // stageRun( )    -- Executes FFT stage functionality
 //******************************************************************
 
-// Templatized fft_dif_r2_sdf_stage  Class
+// Templatized ac_fft_dif_r2_sdf_stage  Class
 
 template< int STAGE, int MEM_TH, class com_p, class complex_round, class com_rnd_ext, class com_mult_type, class complext, class complext_fix>
-class fft_dif_r2_sdf_stage
+class ac_fft_dif_r2_sdf_stage
 {
   ac_int<STAGE + 1, false> iterator;
   ac_int<STAGE + 1, false> addr;              // used to access memory address
@@ -115,10 +115,8 @@ private:
 
   void butterfly(com_rnd_ext &x, com_rnd_ext &y) {
     com_rnd_ext temp_1, temp_2 ;
-
     temp_1 = x;
     temp_2 = y;
-
     x = (temp_1 + temp_2);         // Butterfly Computation
     y = (temp_1 - temp_2);
   }
@@ -170,8 +168,9 @@ private:
   void writeMem(com_rnd_ext &in) {
     if ((1 << STAGE) < (MEM_TH)) {
 #pragma unroll yes
-      for (int i = (1 << STAGE) - 1; i > 0; i--)
-      { shift_reg[i] = shift_reg[i - 1]; }
+      for (int i = (1 << STAGE) - 1; i > 0; i--) {
+        shift_reg[i] = shift_reg[i - 1];
+      }
       shift_reg[0] = in;
     } else {
       memory_shift[addr & ((1 << STAGE) - 1)] = in;
@@ -220,7 +219,7 @@ public:
   // Constructor of fft class
   // Reset Action will be done here
 
-  fft_dif_r2_sdf_stage () {
+  ac_fft_dif_r2_sdf_stage () {
     iterator = 0;
     addr = 0;
     ac::init_array<AC_VAL_DC>(&memory_shift[0], 1 << STAGE);
@@ -229,7 +228,7 @@ public:
 };
 
 //***********************************************************************************
-// Description:  class "fft_dif_r2_sdf_core " can instantiate upto 12 stages
+// Description:  class "ac_fft_dif_r2_sdf_core " can instantiate upto 12 stages
 //
 //               class has the member function--
 //               fftDifR2SdfCore() -- Implements core functionality the FFT. For one
@@ -238,9 +237,8 @@ public:
 //***********************************************************************************
 
 template < unsigned N_FFT, int MEM_TH, int TWID_PREC, int DIF_D0_P, int DIF_D0_I >
-class fft_dif_r2_sdf_core
+class ac_fft_dif_r2_sdf_core
 {
-
 private:
   // Type definition for Multipliers, Accumulator and stage variable for all stage
   // based on template args
@@ -258,18 +256,18 @@ private:
 
   // creating stage objects for FFT
 
-  fft_dif_r2_sdf_stage <11, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_11;
-  fft_dif_r2_sdf_stage <10, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_10;
-  fft_dif_r2_sdf_stage < 9, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_9;
-  fft_dif_r2_sdf_stage < 8, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_8;
-  fft_dif_r2_sdf_stage < 7, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_7;
-  fft_dif_r2_sdf_stage < 6, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_6;
-  fft_dif_r2_sdf_stage < 5, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_5;
-  fft_dif_r2_sdf_stage < 4, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_4;
-  fft_dif_r2_sdf_stage < 3, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_3;
-  fft_dif_r2_sdf_stage < 2, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_2;
-  fft_dif_r2_sdf_stage < 1, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_1;
-  fft_dif_r2_sdf_stage < 0, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_0;
+  ac_fft_dif_r2_sdf_stage <11, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_11;
+  ac_fft_dif_r2_sdf_stage <10, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_10;
+  ac_fft_dif_r2_sdf_stage < 9, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_9;
+  ac_fft_dif_r2_sdf_stage < 8, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_8;
+  ac_fft_dif_r2_sdf_stage < 7, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_7;
+  ac_fft_dif_r2_sdf_stage < 6, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_6;
+  ac_fft_dif_r2_sdf_stage < 5, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_5;
+  ac_fft_dif_r2_sdf_stage < 4, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_4;
+  ac_fft_dif_r2_sdf_stage < 3, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_3;
+  ac_fft_dif_r2_sdf_stage < 2, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_2;
+  ac_fft_dif_r2_sdf_stage < 1, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_1;
+  ac_fft_dif_r2_sdf_stage < 0, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, complext, fix_point_tw> stage_0;
 
 public:
 
@@ -370,7 +368,6 @@ public:
 
     stage_init = false;
   }
-
 };
 
 #include <ac_channel.h>
@@ -380,8 +377,6 @@ public:
 #ifdef COVER_ON
 #include <ac_assert.h>
 #endif
-
-#include <mc_scverify.h>
 
 //************************************************************************************************
 //
@@ -404,7 +399,7 @@ public:
 
   comp_dif b;
 
-  fft_dif_r2_sdf_core < N_FFT, MEM_TH, TWID_PREC, DIF_D0_P, DIF_D0_I >  fft ;
+  ac_fft_dif_r2_sdf_core < N_FFT, MEM_TH, TWID_PREC, DIF_D0_P, DIF_D0_I >  fft ;
 
   ac_fft_dif_r2_sdf() { /*constructor*/
     write_out = false;
@@ -421,7 +416,6 @@ public:
               || (N_FFT == 256) || (N_FFT == 512) || (N_FFT == 1024) || (N_FFT == 2048) || (N_FFT == 4096), "N_FFT is not a power of two");
     AC_ASSERT(TWID_PREC <= 32, "Twiddle bitwidth greater than 32");
 #endif
-
 #ifdef COVER_ON
     cover(TWID_PREC <= 5);
 #endif
@@ -431,7 +425,7 @@ public:
 
 #pragma hls_design interface
 #pragma hls_pipeline_init_interval 1
-  void CCS_BLOCK(run)(ac_channel<comp_dif> &x1, ac_channel<comp_dif> &y1) {
+  void run(ac_channel<comp_dif> &x1, ac_channel<comp_dif> &y1) {
     coverAssert();
     comp_dif a, y;
 
@@ -439,9 +433,9 @@ public:
     sample_loop:for (int i = 0; i < N_FFT; i++) {
       a = x1.read();
       fft.fftDifR2SdfCore(a, y);             // Calling Core of FFT Design
-      if (write_out)
-      { y1.write(b); }
-      else {
+      if (write_out) {
+        y1.write(b);
+      } else {
         b.r() = 0;
         b.i() = 0;
       }
@@ -453,3 +447,4 @@ public:
 };
 
 #endif
+

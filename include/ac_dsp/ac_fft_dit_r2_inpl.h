@@ -26,9 +26,9 @@
 //
 //    Organization:
 //     The ac_fft_dit_r2_inpl class serves as a C++ interface to the core class. The
-//     fft_dit_r2_inpl_core class is generic and intended to work well even with SystemC
+//     ac_fft_dit_r2_inpl_core class is generic and intended to work well even with SystemC
 //     implementations in addition to the supplied C++ implementation. The core class
-//     instantiates the butterfly as an object of the 'fft_dit_r2_inpl_butterfly' class,
+//     instantiates the butterfly as an object of the 'ac_fft_dit_r2_inpl_butterfly' class,
 //     handles computation of the FFT Flow Graph and also fetches and writes data.
 //     The butterfly class implements a Radix-2 butterfly, and the output of it is
 //     hard-coded to scale-down by half.
@@ -93,7 +93,7 @@ using namespace std;
 
 //*************************************************
 //
-// class "fft_dit_r2_inpl_butterfly"
+// class "ac_fft_dit_r2_inpl_butterfly"
 //
 // class has member functions--
 // butterflyR2( ) -- Radix-2 Butterfly Structure
@@ -104,7 +104,7 @@ using namespace std;
 //*************************************************
 
 template < class fix_p, class com_p, class complex_round, class com_rnd_ext, class com_mult, class com_tw >
-class fft_dit_r2_inpl_butterfly
+class ac_fft_dit_r2_inpl_butterfly
 {
   typedef ac_fixed < 20, 2, true, AC_RND > fxpt;
   typedef ac_complex < fxpt > comx_tw;
@@ -115,10 +115,8 @@ private:
 
   void butterflyR2(com_rnd_ext &x, com_rnd_ext &y) {
     com_rnd_ext temp_1, temp_2;
-
     temp_1 = x;
     temp_2 = y;
-
     x = temp_1 + temp_2;
     y = temp_1 - temp_2;
   }
@@ -127,12 +125,10 @@ private:
 
   complex_round rescale(const com_rnd_ext in) {
     complex_round tx;
-
     // The addition output is hard-coded to scale by 1/2. However, the user can pass it as-is by
     // eliminating the right-shift in the following two equations.
     tx.r() = (in.r() >> 1);
     tx.i() = (in.i() >> 1);
-
     return tx;
   }
 
@@ -141,43 +137,33 @@ private:
   com_rnd_ext mult(const com_rnd_ext x, const com_tw y) {
     com_mult temp_1, temp_2, tx;
     com_rnd_ext out;
-
     temp_1 = x;
     temp_2 = y;
-
     tx = temp_1 * temp_2;
-
     out = tx;
-
     return out;
   }
 
 public:
 
   void compute(com_p &x, com_p &y, const comx_tw w) {
-
     com_rnd_ext xt, yt;
     com_tw tw;
-
     xt = x;
     yt = y;
-
     tw = (com_tw) w;
     xt = mult(xt, tw);
-
     butterflyR2(yt, xt);
-
     x = rescale(xt);
     y = rescale(yt);
-
   }
 };
 
 //**********************************************************************************
-// class "fft_dit_r2_inpl_core " implements Fast Fourier Transform (FFT) as
+// class "ac_fft_dit_r2_inpl_core " implements Fast Fourier Transform (FFT) as
 // Decimation
-// In Time (DIT) Radix-2 (R2) in In-place (inpl) Architecture fft_dit_r2_inpl_core
-// instantiate 1 instance of stages (fft_dit_r2_inpl_butterfly)
+// In Time (DIT) Radix-2 (R2) in In-place (inpl) Architecture ac_fft_dit_r2_inpl_core
+// instantiate 1 instance of stages (ac_fft_dit_r2_inpl_butterfly)
 // class has member functions--
 // swap() -- Swaps Data b/w two banks to avoid Address conflict
 //
@@ -186,9 +172,8 @@ public:
 //**********************************************************************************
 
 template < unsigned N_FFT, int TWID_PREC, int DIT_D_P, int DIT_D_I >
-class fft_dit_r2_inpl_core
+class ac_fft_dit_r2_inpl_core
 {
-
 private:
   // Type definitions for Multipliers,Accumulator and stage variable for fft
   typedef ac_fixed < TWID_PREC, 2, true, AC_RND_INF > tType;
@@ -207,7 +192,6 @@ private:
   void swap(const int addr_mask, const int id_bank_1, cx_dType &data_1, cx_dType &data_2) {
     cx_dType data_1_tmp;
     bool swap_d;
-
     data_1_tmp = data_1;
     swap_d = (addr_mask & id_bank_1);
     data_1 = swap_d ? data_2 : data_1;
@@ -235,11 +219,6 @@ public:
     idx = N_FFT;
     cx_tType tw, twd;
 
-#if defined(AC_FFT_DIT_R2_INPL_H_DEBUG) && !defined(__SYNTHESIS__)
-    static bool print_first_time = true;
-    static double num_print = 0;
-#endif
-
 #pragma hls_pipeline_init_interval 1
     STAGE_LOOP:for (int i = 0; i < FFT_STAGES; i++) {
       id_bank_1 = 0;
@@ -255,7 +234,7 @@ public:
           data_2 = bank_2[id_bank_2];
           swap(addr_mask >> 1, id_bank_1, data_1, data_2);
           // Buttererfly Class Object
-          fft_dit_r2_inpl_butterfly < dType, cx_dType, cx_dround, cx_b_dround, cx_mType, cx_tType > btrfly;
+          ac_fft_dit_r2_inpl_butterfly < dType, cx_dType, cx_dround, cx_b_dround, cx_mType, cx_tType > btrfly;
 
           ac_int < (FFT_STAGES - 1) + 2, false > n;
           n = (j * idx);
@@ -316,23 +295,6 @@ public:
 
           k += n2;
 
-#if defined(AC_FFT_DIT_R2_INPL_H_DEBUG) && !defined(__SYNTHESIS__)
-          // Enter number of the stage you want to display the variables for.
-          int N_STAGE_DISPLAY = 1;
-          if (print_first_time && (i == N_STAGE_DISPLAY)) {
-            num_print++;
-            cout << "i = " << i << endl;
-            cout << "j = " << j << endl;
-            cout << "kk = " << kk << endl;
-            cout << "n1 = " << n1 << endl;
-            cout << "n2 = " << n2 << endl;
-            cout << "k = " << k << endl;
-            cout << "num_print = " << num_print << endl;
-            cout << "bank_1[" << id_bank_1 << "] = " << data_1 << endl;
-            cout << "bank_2[" << id_bank_2 << "] = " << data_2 << endl;
-          }
-#endif
-
           id_bank_1 += (1 << i);
 
           if (id_bank_1[FFT_STAGES - 1]) {
@@ -340,23 +302,15 @@ public:
             id_bank_1 += 1;
           }
 
-          if (k >= N_FFT - 1)
-          { break; }
+          if (k >= N_FFT - 1) { break; }
         }
-        if (j == n1 - 1)
-        { break; }
+        if (j == n1 - 1) { break; }
       }
       addr_mask <<= 1;
     }
 
-#if defined(AC_FFT_DIT_R2_INPL_H_DEBUG) && !defined(__SYNTHESIS__)
-    print_first_time = false;
-#endif
-
   }
 };
-
-#include <mc_scverify.h>
 
 //**********************************************************************************
 //
@@ -376,7 +330,7 @@ private:
   typedef ac_fixed < DIT_D_P, DIT_D_I, true > dit_fxp_data;
   typedef ac_complex < dit_fxp_data > dit_input, dit_output;
 
-  fft_dit_r2_inpl_core < N_FFT, TWIDDLE_PREC, DIT_D_P, DIT_D_I > fft;
+  ac_fft_dit_r2_inpl_core < N_FFT, TWIDDLE_PREC, DIT_D_P, DIT_D_I > fft;
   dit_input bank_1[N_FFT / 2], bank_2[N_FFT / 2];
 
 public:
@@ -398,21 +352,21 @@ public:
     AC_ASSERT(TWIDDLE_PREC >= 2,  "Twiddle factor bitwidth lesser than 2");
     AC_ASSERT(DIT_D_P >= DIT_D_I,  "Stage integer width lesser than bitwidth");
 #endif
-
 #ifdef COVER_ON
     cover(TWIDDLE_PREC <= 5);
 #endif
   }
 
 #pragma hls_design interface
-  void CCS_BLOCK(run)(ac_channel < dit_input > &inst, ac_channel < dit_output > &outst) {
+  void run(ac_channel < dit_input > &inst, ac_channel < dit_output > &outst) {
     coverAssert();
 #pragma hls_pipeline_init_interval 1
     INPUT_LOOP:for (int i = 0; i < N_FFT; i++) {
-      if (i & 1)
-      { bank_2[(N_FFT / 2) - (i >> 1) - 1] = inst.read(); }
-      else
-      { bank_1[i >> 1] = inst.read(); }
+      if (i & 1) {
+        bank_2[(N_FFT / 2) - (i >> 1) - 1] = inst.read();
+      } else {
+        bank_1[i >> 1] = inst.read();
+      }
     }
 
     fft.fftDitR2InplCore(bank_2, bank_1);                       /* Calling Core of FFT Design */
@@ -420,12 +374,14 @@ public:
 #pragma hls_pipeline_init_interval 1
     OUTPUT_LOOP:for (int j = 0; j < N_FFT; j++) {
 
-      if (j < N_FFT / 2)
-      { outst.write(bank_1[j]); }
-      else
-      { outst.write(bank_2[j - (N_FFT / 2)]); }
+      if (j < N_FFT / 2) {
+        outst.write(bank_1[j]);
+      } else {
+        outst.write(bank_2[j - (N_FFT / 2)]);
+      }
     }
   }
 };
 
 #endif
+

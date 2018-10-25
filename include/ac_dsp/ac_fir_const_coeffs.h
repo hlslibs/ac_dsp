@@ -239,13 +239,13 @@ typedef enum { SHIFT_REG, ROTATE_SHIFT, C_BUFF, FOLD_EVEN, FOLD_ODD, TRANSPOSED,
 template < class IN_TYPE, class OUT_TYPE, class COEFF_TYPE, class ACC_TYPE, unsigned N_TAPS, FTYPE ftype >
 class ac_fir_const_coeffs
 {
+private:
+  fir_const_coeffs_core < IN_TYPE, OUT_TYPE, COEFF_TYPE, ACC_TYPE, N_TAPS > filter;
+
 public:
-  // This pointer is set to public so that the user can extract the coeffs array from the base class and use it for their own
-  // purposes in their testbench.
-  const COEFF_TYPE *const cff_ptr;
 
   // constructor with pointer of const coeff array as an arg
-  ac_fir_const_coeffs(const COEFF_TYPE *const c_ptr) : cff_ptr(c_ptr) { }
+  ac_fir_const_coeffs(const COEFF_TYPE *const c_ptr) : filter(c_ptr) { }
 
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design interface
@@ -257,7 +257,6 @@ public:
 #endif
     {
       core_in = data_in.read();
-      static fir_const_coeffs_core < IN_TYPE, OUT_TYPE, COEFF_TYPE, ACC_TYPE, N_TAPS > filter(cff_ptr);
       if (ftype == SHIFT_REG) {
         filter.firConstCoeffsShiftReg(core_in, core_out);                   // Shift register implementation
       }

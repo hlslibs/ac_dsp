@@ -26,9 +26,9 @@
 //
 //    Organization:
 //     The ac_fft_dit_r2_sdf class serves as a C++ interface to the core class. The
-//     fft_dit_r2_sdf_core class is generic and intended to work well even with SystemC
+//     ac_fft_dit_r2_sdf_core class is generic and intended to work well even with SystemC
 //     implementations in addition to the supplied C++ implementation. The core class
-//     instantiates delay stages as an objects of the 'fft_dit_r2_sdf_stage' class.
+//     instantiates delay stages as an objects of the 'ac_fft_dit_r2_sdf_stage' class.
 //     The stages are implemented as a cascaded Single Feedback structure.
 //
 //    Order of Input/Output:
@@ -93,7 +93,7 @@
 
 //******************************************************************
 //
-// class "fft_dit_r2_sdf_stage"
+// class "ac_fft_dit_r2_sdf_stage"
 //
 // class has member functions--
 //  butterfly( )   -- Radix-2 Butterfly Structure
@@ -106,9 +106,9 @@
 //******************************************************************
 
 template <int STAGE, int MEM_TH, class com_p, class complex_round, class com_rnd_ext, class com_mult_type, class complext, class complext_fix >
-class fft_dit_r2_sdf_stage
+class ac_fft_dit_r2_sdf_stage
 {
-
+private: // Data
   ac_int < STAGE + 1, false > iterator;
   ac_int < STAGE + 1, false > addr;             // used for access memory address
 
@@ -122,10 +122,8 @@ private:
 
   void butterfly(com_rnd_ext &x, com_rnd_ext &y) {
     com_rnd_ext temp_1, temp_2;
-
     temp_1 = x;
     temp_2 = y;
-
     x = temp_1 + temp_2;
     y = temp_1 - temp_2;
   }
@@ -134,12 +132,10 @@ private:
 
   complex_round rescale(const com_rnd_ext in) {
     complex_round tx;
-
     // The function is hard-coded to scale real and imaginary inputs to it by 1/2. However, the user can pass it as-is by
     // eliminating the right-shift in the following two equations.
     tx.r() = (in.r() >> 1);
     tx.i() = (in.i() >> 1);
-
     return tx;
   }
 
@@ -148,13 +144,10 @@ private:
   com_rnd_ext mult(const com_rnd_ext x, const complext y) {
     com_mult_type temp_1, temp_2, tx;
     com_rnd_ext out;
-
     temp_1 = x;
     temp_2 = y;
-
     tx = temp_1 * temp_2;
     out = tx;
-
     return out;
   }
 
@@ -173,8 +166,9 @@ private:
   void writeMem(com_rnd_ext &in) {
     if ((1 << STAGE) < (MEM_TH)) {
 #pragma unroll yes
-      for (int i = (1 << STAGE) - 1; i > 0; i--)
-      { shift_reg[i] = shift_reg[i - 1]; }
+      for (int i = (1 << STAGE) - 1; i > 0; i--) {
+        shift_reg[i] = shift_reg[i - 1];
+      }
       shift_reg[0] = in;
     } else {
       memory_shift[addr & ((1 << STAGE) - 1)] = in;
@@ -192,9 +186,7 @@ public:
     complext tw, twd;
 
     xt = x;
-
     readMem(yt);
-
     if (iterator[STAGE]) {
       ac_int < STAGE + 2, false > n;
       n = (iterator) & ((1 << STAGE) - 1);
@@ -228,7 +220,7 @@ public:
   // Constructor of fft class
   // Reset Action will be done here
 
-  fft_dit_r2_sdf_stage() {
+  ac_fft_dit_r2_sdf_stage() {
     iterator = (1 << STAGE) ^ 1;
     addr = 0;
     ac::init_array < AC_VAL_DC > (&memory_shift[0], 1 << STAGE);
@@ -237,9 +229,9 @@ public:
 
 //**********************************************************************************
 //
-//  class "fft_dit_r2_sdf_core "
+//  class "ac_fft_dit_r2_sdf_core "
 //
-//  fft_dit_r2_sdf_core instantiates up to 12 stages
+//  ac_fft_dit_r2_sdf_core instantiates up to 12 stages
 //  The class has the member function--
 //  fftDitR2SdfCore() -- Implements core functionality the FFT. For one sample, all
 //                       stages execute per call of function 'fftDitR2SdfCore'
@@ -247,9 +239,8 @@ public:
 //**********************************************************************************
 
 template <  unsigned N_FFT, int MEM_TH, int TWID_PREC, int DIT_D0_P, int DIT_D0_I >
-class fft_dit_r2_sdf_core
+class ac_fft_dit_r2_sdf_core
 {
-
 private:
 
   // Type definitions for Multipliers, Accumulator and stage variable for all stages
@@ -268,18 +259,18 @@ private:
 
   // creating stage objects for FFT
 
-  fft_dit_r2_sdf_stage <  0, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_11;
-  fft_dit_r2_sdf_stage <  1, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_10;
-  fft_dit_r2_sdf_stage <  2, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_9;
-  fft_dit_r2_sdf_stage <  3, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_8;
-  fft_dit_r2_sdf_stage <  4, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_7;
-  fft_dit_r2_sdf_stage <  5, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_6;
-  fft_dit_r2_sdf_stage <  6, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_5;
-  fft_dit_r2_sdf_stage <  7, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_4;
-  fft_dit_r2_sdf_stage <  8, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_3;
-  fft_dit_r2_sdf_stage <  9, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_2;
-  fft_dit_r2_sdf_stage < 10, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_1;
-  fft_dit_r2_sdf_stage < 11, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_0;
+  ac_fft_dit_r2_sdf_stage <  0, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_11;
+  ac_fft_dit_r2_sdf_stage <  1, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_10;
+  ac_fft_dit_r2_sdf_stage <  2, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_9;
+  ac_fft_dit_r2_sdf_stage <  3, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_8;
+  ac_fft_dit_r2_sdf_stage <  4, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_7;
+  ac_fft_dit_r2_sdf_stage <  5, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_6;
+  ac_fft_dit_r2_sdf_stage <  6, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_5;
+  ac_fft_dit_r2_sdf_stage <  7, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_4;
+  ac_fft_dit_r2_sdf_stage <  8, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_3;
+  ac_fft_dit_r2_sdf_stage <  9, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_2;
+  ac_fft_dit_r2_sdf_stage < 10, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_1;
+  ac_fft_dit_r2_sdf_stage < 11, MEM_TH, dit_complex, dit_complex_round, dit_complex_round_b, dit_comp_mul, complext, fix_point_tw > stage_0;
 
 public:
   void fftDitR2SdfCore(const dit_complex &input, dit_complex &output) {
@@ -324,12 +315,8 @@ public:
     if (N_FFT >= 4096) {  stage_0.stageRun( temp_0, twiddle_11); }
 
     output = (dit_complex_round)temp_0;
-
   }
-
 };
-
-#include <mc_scverify.h>
 
 //***************************************************************************************
 //
@@ -357,7 +344,7 @@ public:
     b = 0;
   };
 
-  fft_dit_r2_sdf_core <N_FFT, MEM_TH, TWID_PREC, DIT_D0_P, DIT_D0_I > fft;
+  ac_fft_dit_r2_sdf_core <N_FFT, MEM_TH, TWID_PREC, DIT_D0_P, DIT_D0_I > fft;
 
   // coverAssert() helps to validate if object of this class created in user code has the right set of parameters defined for it.
   // Code will assert during compile time if incorrect template values are used.
@@ -368,7 +355,6 @@ public:
               || (N_FFT == 256) || (N_FFT == 512) || (N_FFT == 1024) || (N_FFT == 2048) || (N_FFT == 4096), "N_FFT should be a power of two");
     AC_ASSERT(TWID_PREC <= 32, "Twiddle factor bitwidth greater than 32");
 #endif
-
 #ifdef COVER_ON
     cover(TWID_PREC <= 5);
 #endif
@@ -376,12 +362,12 @@ public:
 
 #pragma hls_design interface
 #pragma hls_pipeline_init_interval 1
-  void CCS_BLOCK(run)(ac_channel < comp_dit0 > &x1, ac_channel < comp_dit0 > &y1) {
+  void run(ac_channel < comp_dit0 > &x1, ac_channel < comp_dit0 > &y1) {
     coverAssert();
     comp_dit0 a, y;
 
 #pragma hls_pipeline_init_interval 1
-    sample_loop:for (int i = 0; i < N_FFT; i++) {
+    sample_loop: for (int i = 0; i < N_FFT; i++) {
       a = x1.read();
       fft.fftDitR2SdfCore(a, y);                  // Calling Core of FFT Design
       if (write_out) {
@@ -398,3 +384,4 @@ public:
 };
 
 #endif
+

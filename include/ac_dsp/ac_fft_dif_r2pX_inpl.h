@@ -26,9 +26,9 @@
 //
 //    Organization:
 //     The ac_fft_dif_r2pX_inpl class serves as a C++ interface to the core class. The
-//     fft_dif_r2pX_inpl_core class is generic and intended to work well even with SystemC
+//     ac_fft_dif_r2pX_inpl_core class is generic and intended to work well even with SystemC
 //     implementations in addition to the supplied C++ implementation. The core class
-//     instantiates the butterfly as an object of the 'fft_dif_r2pX_inpl_butterfly' class,
+//     instantiates the butterfly as an object of the 'ac_fft_dif_r2pX_inpl_butterfly' class,
 //     handles computation of the FFT Flow Graph and also fetches and writes data.
 //     The butterfly class implements the Radix-engine compromise, and the output of it is
 //     hard-coded to scale-down by half.
@@ -85,7 +85,7 @@ using namespace std;
 
 //**************************************************************************************
 //
-// class "fft_dif_r2pX_inpl_butterfly"
+// class "ac_fft_dif_r2pX_inpl_butterfly"
 //
 // class has member functions--
 // fft_dif_r2pX_inpl_radix_butterfly( ) -- Radix Engine in Radix-2 Butterfly
@@ -94,8 +94,9 @@ using namespace std;
 // compute( )                           -- Compute FFT butterfly call
 //**************************************************************************************
 
-// Templatized fft_dif_r2pX_inpl_butterfly  Class
-template <unsigned N_FFT, int RADX, class fix_p, class com_p, class complex_round, class com_rnd_ext, class com_mult, class com_tw > class fft_dif_r2pX_inpl_butterfly
+// Templatized ac_fft_dif_r2pX_inpl_butterfly  Class
+template <unsigned N_FFT, int RADX, class fix_p, class com_p, class complex_round, class com_rnd_ext, class com_mult, class com_tw > 
+class ac_fft_dif_r2pX_inpl_butterfly
 {
 private:
 
@@ -111,22 +112,21 @@ private:
 #include<twiddlesR_64bits.h>
 
 #pragma unroll yes
-    RADIX_STAGE_LOOP:for (ac_int < logRad, 0 > Rstage = logRad - 1; Rstage >= 0; Rstage--) {
+    RADIX_STAGE_LOOP: for (ac_int < logRad, 0 > Rstage = logRad - 1; Rstage >= 0; Rstage--) {
       com_rnd_ext a[RADX];
 
 #pragma unroll yes
-      INPUT_REG_LOOP:for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
+      INPUT_REG_LOOP: for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
         a[rad_itr] = x[rad_itr];
       }
 
 #pragma unroll yes
-      RADIX_BUTTERFLY_LOOP:for (ac_int < logRad, 0 > B_count = 0; B_count < RADX / 2; B_count++) {
+      RADIX_BUTTERFLY_LOOP: for (ac_int < logRad, 0 > B_count = 0; B_count < RADX / 2; B_count++) {
         ac_int < logRad, 0 > addrs1, addrs2, twid_add;
 
         twid_add = ((1 << (logRad - 1)) - 1) & (B_count << (logRad - Rstage - 1));
 
         switch (RADX) {
-
           case 2:
             Rw = Rtw0[twid_add];
             break;
@@ -151,7 +151,7 @@ private:
         }
 
 #pragma unroll yes
-        RADIX_ADD_GEN_LOOP:for (int bit_count = 0; bit_count < logRad; bit_count++) {
+        RADIX_ADD_GEN_LOOP: for (int bit_count = 0; bit_count < logRad; bit_count++) {
           if (bit_count < Rstage) {
             addrs1[bit_count] = B_count[bit_count];
             addrs2[bit_count] = B_count[bit_count];
@@ -160,7 +160,6 @@ private:
             addrs1[bit_count] = 0;
             addrs2[bit_count] = 1;
           }
-
           if (bit_count > Rstage) {
             addrs1[bit_count] = B_count[bit_count - 1];
             addrs2[bit_count] = B_count[bit_count - 1];
@@ -188,7 +187,7 @@ private:
       }
 
 #pragma unroll yes
-      RESCALE_LOOP:for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
+      RESCALE_LOOP: for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
         com_rnd_ext temp;
 
         bool ch_scale = 1 & (scale_fac >> (logRad - 1 - Rstage));
@@ -217,11 +216,9 @@ private:
     bool ch_scale = 1 & (scale_fac >> (logRad - 1));;
 
 #pragma unroll yes
-    TWIDDLE_MULT_LOOP:for (int rad_itr = 1; rad_itr < RADX; rad_itr++) {
-
+    TWIDDLE_MULT_LOOP: for (int rad_itr = 1; rad_itr < RADX; rad_itr++) {
       a[rad_itr] = x[rad_itr];
       b[rad_itr] = y[rad_itr];
-
       tx[rad_itr] = a[rad_itr] * b[rad_itr];
       if (ch_scale) {
         temp.r () = (tx[rad_itr].r () >> 1);
@@ -229,7 +226,6 @@ private:
       } else {
         temp = tx[rad_itr];
       }
-
       x[rad_itr] = temp;
     }
 
@@ -259,7 +255,7 @@ public:
     com_tw tw[RADX];
 
 #pragma unroll yes
-    TWIDDLE_ROUNDING_LOOP:for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
+    TWIDDLE_ROUNDING_LOOP: for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
       xt[rad_itr] = x[rad_itr];
       tw[rad_itr] = (com_tw) w[rad_itr];
     }
@@ -268,7 +264,7 @@ public:
     multRescale (xt, tw, scale_fac);
 
 #pragma unroll yes
-    OUTPUT_ASSINGMENT_LOOP:for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
+    OUTPUT_ASSINGMENT_LOOP: for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
       x[rad_itr] = xt[rad_itr];
     }
   }
@@ -278,16 +274,15 @@ public:
 //****************************************************************
 //
 // Description:
-//  class "fft_dif_r2pX_inpl_core "  has member functions--
+//  class "ac_fft_dif_r2pX_inpl_core "  has member functions--
 //  fftDifR2pXInplCore() -- Implements core functionality the FFT.
 //  bitrevint()          -- Bitrevarsal ac_int
 //
 //****************************************************************
 
 template < unsigned N_FFT, int RADIX, int ORDER, int TWID_PREC, int DIF_D_P, int DIF_D_I >
-class fft_dif_r2pX_inpl_core
+class ac_fft_dif_r2pX_inpl_core
 {
-
 public:
 
   typedef ac_fixed < TWID_PREC, 2, true, AC_RND_INF > tType;
@@ -305,8 +300,9 @@ public:
     ac_int < a, 0 > Num_br;
 
 #pragma unroll yes
-    BITREVERSAL_CORE:for (ac_int < a + 1, 0 > itrator = 0; itrator < a; itrator++)
-    { Num_br[a - 1 - itrator] = Num[itrator]; }
+    BITREVERSAL_CORE: for (ac_int < a + 1, 0 > itrator = 0; itrator < a; itrator++) {
+      Num_br[a - 1 - itrator] = Num[itrator];
+    }
     return Num_br;
   }
 
@@ -342,32 +338,32 @@ public:
 
     // Radix-X engine instantiation
 
-    fft_dif_r2pX_inpl_butterfly < N_FFT, RADIX, dType, cx_dType, cx_dround, cx_b_dround, cx_mType, cx_tType > btrfly;
+    ac_fft_dif_r2pX_inpl_butterfly < N_FFT, RADIX, dType, cx_dType, cx_dround, cx_b_dround, cx_mType, cx_tType > btrfly;
 
 #pragma hls_pipeline_init_interval 1
-    STAGE_LOOP:for (int i = Nstage - 1; i >= 0; i--) {
+    STAGE_LOOP: for (int i = Nstage - 1; i >= 0; i--) {
       bank_add_gen = 0;
       n2 = n1;
       n1 >>= logRad;
-      SEGMENT_LOOP:for (int j = 0; j < N_FFT / RADIX; j++) {
+      SEGMENT_LOOP: for (int j = 0; j < N_FFT / RADIX; j++) {
         int k = j;
 
-        BUTTERFLY_LOOP:for (int kk = 0; kk < N_FFT / RADIX; kk++) {
+        BUTTERFLY_LOOP: for (int kk = 0; kk < N_FFT / RADIX; kk++) {
 
 #pragma unroll yes
-          BANK_ADD_GENERATOR:for (ac_int < logRad + 1, 0 > m = 0; m < RADIX; m++) {
+          BANK_ADD_GENERATOR: for (ac_int < logRad + 1, 0 > m = 0; m < RADIX; m++) {
             ac_int < logRad, 0 > m_no_msb = 0;
             xadd = 0;
             m_no_msb = m;
 #pragma unroll yes
-            BANK_ADD_GEN_NEST:for (int slc_j = logN - logRad; slc_j >= (i * logRad); slc_j = (slc_j - logRad)) {
+            BANK_ADD_GEN_NEST: for (int slc_j = logN - logRad; slc_j >= (i * logRad); slc_j = (slc_j - logRad)) {
               xadd.set_slc (slc_j, m_no_msb);
             }
             id_bank[m] = fix_zero_wire_wdth & (bank_add_gen ^ xadd);
           }
 
 #pragma unroll yes
-          DATA_FETCH_FROM_BANKS:for (int mn = 0; mn < RADIX; mn++) {
+          DATA_FETCH_FROM_BANKS: for (int mn = 0; mn < RADIX; mn++) {
             int bank_add_fet = mn ^ (bank_add_gen.template slc < logRad > (i * logRad));
 
             fet_id_data = id_bank[mn] & ((N_FFT / RADIX) - 1);
@@ -377,7 +373,7 @@ public:
           n = (j * idx);
 
 #pragma unroll yes
-          BITREVERCE_TWIDDLE_ADDRESS:for (ac_int < logRad + 1, 0 > n_itr = 0; n_itr < RADIX; n_itr++) {
+          BITREVERCE_TWIDDLE_ADDRESS: for (ac_int < logRad + 1, 0 > n_itr = 0; n_itr < RADIX; n_itr++) {
             ac_int < logRad, 0 > n_nmsb = n_itr;
             n_nmsb = bitrevint < logRad > (n_nmsb);
             if ((i == Nstage - 1) && (RADIX_R != 0)) {
@@ -392,13 +388,12 @@ public:
           tw_vac[0] = comx_twiddle (1, 0);
 
 #pragma unroll yes
-          TWIDDLE_VAC_GEN:for (ac_int < logRad + 1, 0 > tw_itr = 1; tw_itr < RADIX; tw_itr++) {
+          TWIDDLE_VAC_GEN: for (ac_int < logRad + 1, 0 > tw_itr = 1; tw_itr < RADIX; tw_itr++) {
             ac_int < logN, false > t;
             n = n_vac[tw_itr];
             t = (1 & ((n << 2) >> (logN_a - 1))) ? (ac_int < (logN_a - 1) + 1, false >) ((((1 << (logN_a - 1)) >> 2)) - (n & ((((1 << (logN_a - 1)) >> 2)) - 1))) : (ac_int < (logN_a - 1) + 1, false >) (n & ((((1 << (logN_a - 1)) >> 2)) - 1));
 
             switch (logN_a) {
-
               case 1:
                 twd = twiddle_0[t];
                 break;
@@ -452,7 +447,7 @@ public:
           btrfly.compute (i - Nstage + 1, data, tw_vac, ((RADIX - 1) & (((N_FFT - 1) << RADIX_R) >> ((Nstage - 1 - i) * logRad))));
 
 #pragma unroll yes
-          PUTTING_DATA_IN_BANKS:for (int amn = 0; amn < RADIX; amn++) {
+          PUTTING_DATA_IN_BANKS: for (int amn = 0; amn < RADIX; amn++) {
             cur_id_bank = id_bank[amn] & ((N_FFT / RADIX) - 1);
             int data_add = amn ^ (bank_add_gen.template slc < logRad > (i > 0 ? (i - 1) * logRad : logN));
 
@@ -475,9 +470,7 @@ public:
       }
       idx <<= logRad;
     }
-
   }
-
 };
 
 #include <ac_channel.h>
@@ -487,8 +480,6 @@ public:
 #ifdef COVER_ON
 #include <ac_assert.h>
 #endif
-
-#include<mc_scverify.h>
 
 //*****************************************************************************************
 // class "ac_fft_dif_r2pX_inpl"
@@ -500,13 +491,14 @@ public:
 // ac_int bitrevint( )   -- Bit-Reversal of ac_int variable
 //*****************************************************************************************
 
-template < unsigned N_FFT, int RADIX, int ORDER, int TWIDDLE_PREC, int DIF_D_P, int DIF_D_I > class ac_fft_dif_r2pX_inpl
+template < unsigned N_FFT, int RADIX, int ORDER, int TWIDDLE_PREC, int DIF_D_P, int DIF_D_I > 
+class ac_fft_dif_r2pX_inpl
 {
 private:
   typedef ac_fixed < DIF_D_P, DIF_D_I, true > dif_fxp_data;
   typedef ac_complex < dif_fxp_data > dif_input, dif_output;
 
-  fft_dif_r2pX_inpl_core < N_FFT, RADIX, ORDER, TWIDDLE_PREC, DIF_D_P, DIF_D_I > fft;
+  ac_fft_dif_r2pX_inpl_core < N_FFT, RADIX, ORDER, TWIDDLE_PREC, DIF_D_P, DIF_D_I > fft;
   dif_input bank[RADIX][N_FFT / RADIX];
 
   // coverAssert() used for basic template assert condition. This helps to validate if object
@@ -520,19 +512,19 @@ private:
     AC_ASSERT (TWIDDLE_PREC >= 2, "Twiddle bitwidth lesser than 2");
     AC_ASSERT (DIF_D_P >= DIF_D_I, "Stage bitwidth lesser than integer width");
 #endif
-
 #ifdef COVER_ON
     cover (TWIDDLE_PREC <= 5);
 #endif
   }
 
-  template < int n, int shft > ac_int < n, 0 > shiftcr (ac_int < n, 0 > &input) {
+  template < int n, int shft >
+  ac_int < n, 0 > shiftcr (ac_int < n, 0 > &input) {
     const int logn = ac::log2_ceil < n >::val;
 
     ac_int < n, 0 > output;
     ac_int < logn + 1, 0 > ckr;
 #pragma unroll yes
-    CIRCULAR_SHIFT:for (ac_int < logn + 1, 0 > itr = 0;; itr++) {
+    CIRCULAR_SHIFT: for (ac_int < logn + 1, 0 > itr = 0;; itr++) {
       ckr = (itr + shft) % n;
       output[itr] = input[ckr];
 
@@ -542,12 +534,14 @@ private:
     return output;
   }
 
-  template < int a > ac_int < a, 0 > bitrevint (ac_int < a, 0 > &Num) {
+  template < int a >
+  ac_int < a, 0 > bitrevint (ac_int < a, 0 > &Num) {
     ac_int < a, 0 > Num_br;
 
 #pragma unroll yes
-    BITREVERSE:for (ac_int < a + 1, 0 > itrator = 0; itrator < a; itrator++)
-    { Num_br[a - 1 - itrator] = Num[itrator]; }     // bit-reversal of ac_int variable
+    BITREVERSE: for (ac_int < a + 1, 0 > itrator = 0; itrator < a; itrator++) {
+      Num_br[a - 1 - itrator] = Num[itrator]; // bit-reversal of ac_int variable
+    }
     return Num_br;
   }
 public:
@@ -560,7 +554,7 @@ public:
   // by instantiating the object of the class with specific template parameters. It uses ac_channels to explicitly stream
   // design's inputs and outputs and have the streaming interface appropriately modeled in synthesis.
 #pragma hls_design interface
-  void CCS_BLOCK(run) (ac_channel < dif_input > &inst, ac_channel < dif_output > &outst) {
+  void run(ac_channel < dif_input > &inst, ac_channel < dif_output > &outst) {
     coverAssert();
     const int logN = ac::log2_ceil < N_FFT >::val;
     const int logRad = ac::log2_ceil < RADIX >::val;
@@ -569,9 +563,9 @@ public:
     const int RADIX_R = (logRad - mixR) % logRad;
 
 #pragma hls_pipeline_init_interval 1
-    INPUT_LOOP:for (int k = 0; k < RADIX; k++) {
+    INPUT_LOOP: for (int k = 0; k < RADIX; k++) {
 
-      INPUT_LOOP_ADDRESSING:for (int j = 0; j < N_FFT / RADIX; j++) {
+      INPUT_LOOP_ADDRESSING: for (int j = 0; j < N_FFT / RADIX; j++) {
         ac_int < logRad, 0 > bank_temp, bank_add;
         bank_temp = k;
         bank_add = shiftcr < logRad, RADIX_R > (bank_temp);
@@ -586,47 +580,42 @@ public:
     ac_int < logRad, 0 > m_no_msb = 0, bank_add;
 
     if (ORDER == 1) {
-
       // This loop Generates Addresses to Fetch Output in Natural Order
 #pragma hls_pipeline_init_interval 1
-      OUTPUT_LOOP_NATURAL:for (int m = 0; m < RADIX; m++)
-
-      {
+      OUTPUT_LOOP_NATURAL: for (int m = 0; m < RADIX; m++) {
         m_no_msb = m;
         bank_add = bitrevint < logRad > (m_no_msb);
         m_no_msb = bank_add;
-        OUTPUT_LOOP_NATURAL_ADDRESS:for (int i = 0; i < N_FFT / RADIX; i++) {
+        OUTPUT_LOOP_NATURAL_ADDRESS: for (int i = 0; i < N_FFT / RADIX; i++) {
 #pragma unroll yes
-          OUTPUT_LOOP_NATURAL_SLICE:for (int p = 0; p <= (logN - logRad); p = (p + logRad))
-          { out_add.set_slc (p, m_no_msb); }
+          OUTPUT_LOOP_NATURAL_SLICE: for (int p = 0; p <= (logN - logRad); p = (p + logRad)) {
+            out_add.set_slc (p, m_no_msb);
+          }
           mem_intr = i;
           mem_intr = bitrevint < logN - logRad + 1 > (mem_intr);
           mem_intr = mem_intr >> 1;
           mem_add = ((fix_zero_wire_wdth) & (mem_intr ^ out_add));
           outst.write (bank[bank_add][mem_add]);
-
         }
       }
-
     } else {
       // This loop Generates Addresses to Fetch Output in Bit-reversed Order
 #pragma hls_pipeline_init_interval 1
-      OUTPUT_LOOP_BITREVERSE:for (int i = 0; i < N_FFT / RADIX; i++) {
-        OUTPUT_LOOP_BITREVERSE_ADDRESS:for (int m = 0; m < RADIX; m++) {
+      OUTPUT_LOOP_BITREVERSE: for (int i = 0; i < N_FFT / RADIX; i++) {
+        OUTPUT_LOOP_BITREVERSE_ADDRESS: for (int m = 0; m < RADIX; m++) {
           m_no_msb = m;
-
 #pragma unroll yes
-          OUTPUT_LOOP_BITREVERSE_SLICE:for (int p = 0; p <= (logN - logRad); p = (p + logRad))
-          { out_add.set_slc (p, m_no_msb); }
+          OUTPUT_LOOP_BITREVERSE_SLICE: for (int p = 0; p <= (logN - logRad); p = (p + logRad)) {
+            out_add.set_slc (p, m_no_msb);
+          }
           mem_add = ((fix_zero_wire_wdth) & (i ^ out_add));
           bank_add = m;
           outst.write (bank[bank_add][mem_add]);
-
         }
       }
     }
   }
-
 };
 
 #endif
+

@@ -202,8 +202,7 @@ public: // Functions
     ptr = ptr_t;
   };
 
-  // run() is top function for C++ module. Based on filter type configured
-  // it instantiates the desired filter function
+  // Based on filter type configured it instantiates the desired filter function
   void run(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     IN_TYPE core_in;
     OUT_TYPE core_out;

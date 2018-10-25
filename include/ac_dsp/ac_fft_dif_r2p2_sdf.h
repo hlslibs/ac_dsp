@@ -14,28 +14,28 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 /************************************************************************************/
-// File:       ac_fft_dif_r2p2_sdf.h 	   		                                    
-// Description:                                                                     
-// Nomenclature:                                                                    
-//                            ac_fft_dif_r2p2_sdf                                  
+// File:       ac_fft_dif_r2p2_sdf.h
+// Description:
+// Nomenclature:
+//                            ac_fft_dif_r2p2_sdf
 //                          /    /    |     \       \                               
 //                         /   FFT    |   Radix-2^2  \                               
-//                   C-view           |               Single Delay Feedback          
-//                         Decimation in Frequency  
-//                                                                                  
-//                                                                                  
-//  Organization of the design --                                                   
-//                                                                                  
-//  CatWare ac_fft_dif_r2p2_sdf is C++ view of fft_dif_r2p2_sdf_core. It works as
-//  C++ wrapper around generic C++ Core class 'fft_dif_r2p2_sdf_core'. The core    
-//  class instantiates stages as 'fft_dif_r2p2_sdf_stage'. Stages are implemented to     
-//  behave in Single Delay Feedback structure cascaded in such manner that, it can   
-//  work for any FFT-Points of 4^n where value of n = 1,2 .. 6.                     
-//  Scaling factor is used to scale down stage output by 1/2 to avoid overflow                                         
-//                                                                                  
-// Order of Input/Output                                                            
-// Input -- Natural                                                                 
-// Output-- Bit reversed                                                            
+//                   C-view           |               Single Delay Feedback
+//                         Decimation in Frequency
+//
+//
+//  Organization of the design --
+//
+//  ac_fft_dif_r2p2_sdf is a C++ wrapper around a generic C++ Core class 
+//  'ac_fft_dif_r2p2_sdf_core'. The core class instantiates stages as 
+//  'ac_fft_dif_r2p2_sdf_stage'. Stages are implemented to
+//  behave in Single Delay Feedback structure cascaded in such manner that, it can
+//  work for any FFT-Points of 4^n where value of n = 1,2 .. 6.
+//  Scaling factor is used to scale down stage output by 1/2 to avoid overflow
+//
+// Order of Input/Output
+// Input -- Natural
+// Output-- Bit reversed
 //
 // Usage:
 //    A sample testbench and its implementation look like this:
@@ -67,8 +67,8 @@
 //
 //*********************************************************************************************************
 
-#ifndef __AC_FFT_DIF_R2P2_SDF_H
-#define __AC_FFT_DIF_R2P2_SDF_H
+#ifndef _INCLUDED_AC_FFT_DIF_R2P2_SDF_H_
+#define _INCLUDED_AC_FFT_DIF_R2P2_SDF_H_
 
 #include <ac_int.h>
 #include <ac_fixed.h>
@@ -89,11 +89,11 @@ using namespace std;
 
 /***************************************************************************************************************************/
 /*
- * Templatized fft_dif_r2p2_sdf_stage  Class
+ * Templatized ac_fft_dif_r2p2_sdf_stage  Class
  */
 
 template < int STAGE, int MEMORY_THRESHOLD, class com_p, class complex_round, class complex_rnd_ext, class com_mult_type, class complext, class complext_fix >
-class fft_dif_r2p2_sdf_stage
+class ac_fft_dif_r2p2_sdf_stage
 {
   ac_int < STAGE + 2, false > itrator;
   ac_int < STAGE + 1, false > addr;               /* used for access memory address */
@@ -101,10 +101,6 @@ class fft_dif_r2p2_sdf_stage
 
   complex_round memory_shift[1 << (STAGE)];       /* Memory implementation (must be mapped to RAM) */
   complex_round shift_reg[1 << STAGE];            /* Register implementation (must be mapped to registers) */
-
-  /*
-   * Declaration of Member Functions
-   */
 
 private:
 
@@ -202,8 +198,9 @@ private:
   void writeMem(complex_rnd_ext &in) {
     if ((1 << STAGE) < (MEMORY_THRESHOLD)) {
 #pragma unroll yes
-      for (int i = (1 << STAGE) - 1; i > 0; i--)
-      { shift_reg[i] = shift_reg[i - 1]; }
+      for (int i = (1 << STAGE) - 1; i > 0; i--) {
+        shift_reg[i] = shift_reg[i - 1];
+      }
       shift_reg[0] = in;
     } else {
       memory_shift[addr & ((1 << STAGE) - 1)] = in;
@@ -284,7 +281,7 @@ public:
    * Reset Action will be done here
    */
 
-  fft_dif_r2p2_sdf_stage() {
+  ac_fft_dif_r2p2_sdf_stage() {
     itrator = 0;
     addr = 0;
     ac::init_array < AC_VAL_DC > (&memory_shift[0], 1 << STAGE);
@@ -293,7 +290,7 @@ public:
 };
 
 template <unsigned N_FFT, int MEMORY_THRESHOLD, int TWID_PREC, int DIF_D0_P, int DIF_D0_I>
-class fft_dif_r2p2_sdf_core
+class ac_fft_dif_r2p2_sdf_core
 {
 
 private:
@@ -313,18 +310,18 @@ private:
    * creating stage objects for FFT
    */
 
-  fft_dif_r2p2_sdf_stage <11, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_11;
-  fft_dif_r2p2_sdf_stage <10, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_10;
-  fft_dif_r2p2_sdf_stage < 9, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_9;
-  fft_dif_r2p2_sdf_stage < 8, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_8;
-  fft_dif_r2p2_sdf_stage < 7, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_7;
-  fft_dif_r2p2_sdf_stage < 6, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_6;
-  fft_dif_r2p2_sdf_stage < 5, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_5;
-  fft_dif_r2p2_sdf_stage < 4, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_4;
-  fft_dif_r2p2_sdf_stage < 3, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_3;
-  fft_dif_r2p2_sdf_stage < 2, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_2;
-  fft_dif_r2p2_sdf_stage < 1, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_1;
-  fft_dif_r2p2_sdf_stage < 0, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_0;
+  ac_fft_dif_r2p2_sdf_stage <11, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_11;
+  ac_fft_dif_r2p2_sdf_stage <10, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_10;
+  ac_fft_dif_r2p2_sdf_stage < 9, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_9;
+  ac_fft_dif_r2p2_sdf_stage < 8, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_8;
+  ac_fft_dif_r2p2_sdf_stage < 7, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_7;
+  ac_fft_dif_r2p2_sdf_stage < 6, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_6;
+  ac_fft_dif_r2p2_sdf_stage < 5, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_5;
+  ac_fft_dif_r2p2_sdf_stage < 4, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_4;
+  ac_fft_dif_r2p2_sdf_stage < 3, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_3;
+  ac_fft_dif_r2p2_sdf_stage < 2, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_2;
+  ac_fft_dif_r2p2_sdf_stage < 1, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_1;
+  ac_fft_dif_r2p2_sdf_stage < 0, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_0;
 
 public:
 
@@ -350,6 +347,7 @@ public:
       stage_init = true;
       stage_11.stageRun(temp_11, temp_11, twiddle_11);
     }
+
     if (N_FFT >= 2048) {
       if (stage_init) {
         temp_rnd_10.r() = temp_11.r();
@@ -460,7 +458,6 @@ public:
       temp_3.i() = temp_rnd_3.i();
       stage_init = true;
       stage_3.stageRun(temp_3, temp_3, twiddle_4);
-
     }
 
     if (N_FFT >= 8) {
@@ -511,10 +508,7 @@ public:
     output.i() = out_rnd.i();
     stage_init = false;
   }
-
 };
-
-#include <mc_scverify.h>
 
 /* class "ac_fft_dif_r2p2_sdf"
  *
@@ -535,7 +529,7 @@ public:
 
   dif_cplex0 b;
 
-  fft_dif_r2p2_sdf_core <N_FFT, MEMORY_THRESHOLD, TWID_PREC, DIF_D0_P, DIF_D0_I>  fft;
+  ac_fft_dif_r2p2_sdf_core <N_FFT, MEMORY_THRESHOLD, TWID_PREC, DIF_D0_P, DIF_D0_I>  fft;
 
   ac_fft_dif_r2p2_sdf() {   /*constructor*/
     write_out = false;
@@ -553,7 +547,6 @@ public:
     AC_ASSERT(((N_FFT == 4) || (N_FFT == 16) || (N_FFT == 64) || (N_FFT == 256) || (N_FFT == 1024) || (N_FFT == 4096)), "N_FFT is not a power of four");
     AC_ASSERT(TWID_PREC <= 32, "Twiddle bitwidth greater than 32");
 #endif
-
 #ifdef COVER_ON
     cover(TWID_PREC <= 5);
 #endif
@@ -566,17 +559,17 @@ public:
    */
 
 #pragma hls_design interface
-  void CCS_BLOCK(run)(ac_channel < dif_cplex0 > &x1, ac_channel < dif_cplex0 > &y1) {
+  void run(ac_channel < dif_cplex0 > &x1, ac_channel < dif_cplex0 > &y1) {
     coverAssert();
     dif_cplex0 a, y;
 
 #pragma hls_pipeline_init_interval 1
-    sample_loop:for (int i = 0; i < N_FFT; i++) {
+    sample_loop: for (int i = 0; i < N_FFT; i++) {
       a = x1.read();
       fft.fftDifR2p2SdfCore(a, y);                        /* Calling Core of FFT Design */
-      if (write_out)
-      { y1.write(b); }
-      else {
+      if (write_out) {
+        y1.write(b);
+      } else {
         b.r() = 0;
         b.i() = 0;
       }
@@ -587,4 +580,5 @@ public:
 
 };
 
-#endif // __AC_FFT_DIF_R2P2_SDF_H
+#endif
+

@@ -122,18 +122,24 @@ class ac_cic_dec_full                       /* CIC class for full precision impl
 private:
   // Find a lossless intermediate type to be used for computations in the core design.
   typedef class find_inter_type_cic_dec <IN_TYPE, R_, M_, N_>::INT_TYPE INT_TYPE;
+  // Instantiate object of integrator core class. Keep in mind that the output will be full-precision. The intermediate type will automatically
+  // use full precision bitwidths too.
+  ac_cic_full_core_intg < IN_TYPE, INT_TYPE, R_, M_, N_ > intg_inst;
+  // Instantiate object of differentiator core class in a similar manner
+  ac_cic_full_core_diff < INT_TYPE, INT_TYPE, R_, M_, N_ > diff_inst;
+  ac_channel < INT_TYPE > inf;  // interface between integrator and differentiator chain
+#if !defined(__SYNTHESIS__) && defined(AC_CIC_INTR_FULL_H_DEBUG)
+  bool print_once;
+#endif
 
-  // ac_decIntg_block() is integrator section for decimation filter and for C++ module.
+  // decIntg() is integrator section for decimation filter and for C++ module.
   // It creates object of integrator core class "cic_f_core_intg" and calls its member function
   // decIntgCore().
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design
-  void ac_decIntg_block(ac_channel < IN_TYPE > &data_in, ac_channel < INT_TYPE > &data_out) {
+  void decIntg(ac_channel < IN_TYPE > &data_in, ac_channel < INT_TYPE > &data_out) {
     IN_TYPE data_in_t;
     INT_TYPE data_out_t;
-    // Instantiate object of integrator core class. Keep in mind that the output will be full-precision. The intermediate type will automatically
-    // use full precision bitwidths too.
-    static ac_cic_full_core_intg < IN_TYPE, INT_TYPE, R_, M_, N_ > intg_inst(false);
 #ifndef __SYNTHESIS__
     while (data_in.available(1))
 #endif
@@ -146,17 +152,14 @@ private:
     }
   }
 
-  // ac_decDiff_block is comb/differentiator section for decimation filter and for C++ module.
+  // decDiff is comb/differentiator section for decimation filter and for C++ module.
   // It creates object of differentiator core calss "cic_full_core_diff" and calls its member function
   // decDiffCore().
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design
-  void ac_decDiff_block(ac_channel < INT_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out) {
+  void decDiff(ac_channel < INT_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out) {
     INT_TYPE data_in_t, data_out_t;
     OUT_TYPE data_out_final;
-    // Instantiate object of integrator core class. Keep the input and output at full precision. The intermediate type will automatically
-    // use full precision bitwidths too.
-    static ac_cic_full_core_diff < INT_TYPE, INT_TYPE, R_, M_, N_ > diff_inst;      // instantiate object of differentiator core class
 #ifndef __SYNTHESIS__
     while (data_in.available(1))
 #endif
@@ -171,7 +174,11 @@ private:
 
 public: // Functions
   // Constructor
-  ac_cic_dec_full() {}
+  ac_cic_dec_full() : intg_inst(true) {
+#if !defined(__SYNTHESIS__) && defined(AC_CIC_INTR_FULL_H_DEBUG)
+    print_once = true;
+#endif
+  }
 
   // run() is top function for C++ module. Based on filter type configured
   // it instantiates the integrator and comb sections as hierarchical blocks.
@@ -179,12 +186,10 @@ public: // Functions
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design interface
   void run(ac_channel < IN_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out) {
-    static ac_channel < INT_TYPE > inf;  // interface between integrator and differentiator chain
-    ac_decIntg_block(data_in, inf);      // Integrator chain for decimation
-    ac_decDiff_block(inf, data_out);     // differentiator chain for decimation
+    decIntg(data_in, inf);      // Integrator chain for decimation
+    decDiff(inf, data_out);     // differentiator chain for decimation
 
 #if !defined(__SYNTHESIS__) && defined(AC_CIC_DEC_FULL_H_DEBUG)
-    static bool print_once = true;
     if (print_once) {
       print_once = false;
       cout << "INT_TYPE : " << INT_TYPE::type_name() << endl;

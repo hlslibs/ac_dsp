@@ -121,18 +121,24 @@ class ac_cic_intr_full        /* CIC class for full precision implementation */
 private:
   // Find a lossless intermediate type to be used for computations in the core design.
   typedef typename find_inter_type_cic_intr <IN_TYPE, R_, M_, N_>::INT_TYPE INT_TYPE;
+  // Instantiate object of integrator core class. Keep in mind that the output will be full-precision. The intermediate type will automatically
+  // use full precision bitwidths too.
+  ac_cic_full_core_intg < IN_TYPE, INT_TYPE, R_, M_, N_ > intg_inst;
+  // Instantiate object of differentiator core class in a similar manner
+  ac_cic_full_core_diff < INT_TYPE, INT_TYPE, R_, M_, N_ > diff_inst;
+  ac_channel < INT_TYPE > inf;   // interface between integrator and differentiator chain
+#if !defined(__SYNTHESIS__) && defined(AC_CIC_INTR_FULL_H_DEBUG)
+  bool print_once;
+#endif
 
-  // ac_intrDiff_block is comb/differentiator section for interpolation filter and for C++ module.
+  // intrDiff is comb/differentiator section for interpolation filter and for C++ module.
   // It creates object of differentiator core class "cic_full_core_diff" and calls its member function
   // intrDiffCore. see ac_cic_full_core.h for intrDiffCore.
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design
-  void ac_intrDiff_block(ac_channel < IN_TYPE > &data_in, ac_channel < INT_TYPE > &data_out) {
+  void intrDiff(ac_channel < IN_TYPE > &data_in, ac_channel < INT_TYPE > &data_out) {
     IN_TYPE data_in_t;
     INT_TYPE data_out_t;
-    // Instantiate object of integrator core class. Keep in mind that the output will be full-precision. The intermediate type will automatically
-    // use full precision bitwidths too.
-    static ac_cic_full_core_diff < IN_TYPE, INT_TYPE, R_, M_, N_ > diff_inst;      // instantiate object of differentiator core class
 
 #ifndef __SYNTHESIS__
     while (data_in.available(1))
@@ -144,17 +150,14 @@ private:
     }
   }
 
-  // ac_intrIntg_block is integrator section for interpolation filter and for C++ module.
+  // intrIntg is integrator section for interpolation filter and for C++ module.
   // It creates object of inegrator core calss "cic_f_core_intg" and calls its member function
   // intrIntgCore(). see ac_cic_full_core.h for intrIntgCore().
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design
-  void ac_intrIntg_block(ac_channel < INT_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out) {
+  void intrIntg(ac_channel < INT_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out) {
     INT_TYPE data_in_t, data_out_t;
     OUT_TYPE data_out_final;
-    // Instantiate object of integrator core class. Keep the input and output at full precision. The intermediate type will automatically
-    // use full precision bitwidths too.
-    static ac_cic_full_core_intg < INT_TYPE, INT_TYPE, R_, M_, N_ > intg_inst(true);      // Instantiate object of integrator core class
 
 #ifndef __SYNTHESIS__
     while (data_in.available(1))
@@ -176,19 +179,22 @@ private:
 
 public: // Functions
   // Constructor
-  ac_cic_intr_full() {}
+  ac_cic_intr_full() : intg_inst(true) 
+  {
+#if !defined(__SYNTHESIS__) && defined(AC_CIC_INTR_FULL_H_DEBUG)
+    print_once = true;
+#endif
+  }
 
   // run() is top function for C++ module. Based on filter type configured
   // it instantiates integrator and comb sections as hierarchical blocks.
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design interface
   void run(ac_channel < IN_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out) {
-    static ac_channel < INT_TYPE > inf;   // interface between integrator and differentiator chain
-    ac_intrDiff_block(data_in, inf);      // differentiator chain for Interpolation
-    ac_intrIntg_block(inf, data_out);     // Integrator chain for Interpolation
+    intrDiff(data_in, inf);      // differentiator chain for Interpolation
+    intrIntg(inf, data_out);     // Integrator chain for Interpolation
 
 #if !defined(__SYNTHESIS__) && defined(AC_CIC_INTR_FULL_H_DEBUG)
-    static bool print_once = true;
     if (print_once) {
       print_once = false;
       cout << "INT_TYPE = " << INT_TYPE::type_name() << endl;

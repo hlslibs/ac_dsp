@@ -40,7 +40,7 @@ using namespace std;
 
 //************************************************************************************
 //
-// Class: cic_full_core_intg
+// Class: ac_cic_full_core_intg
 // Description: Integrator chain class for full precision implementation
 //
 // Public Interface:
@@ -62,9 +62,9 @@ private:
   // Description: Implements integrators for number of stages configured
   void intStage(OUT_TYPE data_in, OUT_TYPE &data_out) {
 #pragma unroll yes
-    INTG_STG:
-    for (int i = N_ - 1; i > 0; i--)
-    { intg_reg[i] = intg_reg[i] + intg_reg[i - 1]; }
+    INTG_STG: for (int i = N_ - 1; i > 0; i--) {
+      intg_reg[i] = intg_reg[i] + intg_reg[i - 1];
+    }
     intg_reg[0] = data_in + intg_reg[0];
     data_out = intg_reg[N_ - 1];
   }
@@ -105,15 +105,15 @@ public:
 
     if (valid) {
       data_out = data_out_t;
-      dvalid = true;
-    } else {
-      dvalid = false;
     }
+
+    dvalid = valid;
 
     rate_cnt++;
     if (rate_cnt > R_ - 1) {
       rate_cnt = 0;
     }
+
   }
 
   // Function: intrIntgCore
@@ -142,7 +142,7 @@ public:
 
 //**************************************************************************
 //
-// Class: cic_full_core_diff
+// Class: ac_cic_full_core_diff
 // Description: differentiator chain class for full precision implementation
 //
 // Public Interface:
@@ -196,8 +196,7 @@ private: // Functions
     OUT_TYPE data_in_comb_stg;
     OUT_TYPE data_out_comb_stg;
 #pragma unroll yes
-    COMB:
-    for (int i = 0; i < N_; i++) {
+    COMB: for (int i = 0; i < N_; i++) {
       if (i == 0) {
         data_in_comb_stg = data_in;           // for first diff stage input is the data input
       } else {
@@ -213,8 +212,7 @@ private: // Functions
   void diffStage(OUT_TYPE data_in, ac_int < 8, false > k, OUT_TYPE &data_out) {
     data_out = data_in - comb_dly_ln[k][M_ - 1];
 #pragma unroll yes
-    COMB_B:
-    for (int i = 0; i < M_; i++) {
+    COMB_B: for (int i = 0; i < M_; i++) {
       if (i != 0) {
         comb_dly_ln[k][i] = comb_dly_ln[k][i - 1];
       }
