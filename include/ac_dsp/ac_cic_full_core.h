@@ -1,18 +1,35 @@
-////////////////////////////////////////////////////////////////////////////////
-// Catapult Synthesis
-// 
-// Copyright (c) 2003-2018 Mentor Graphics Corp.
-//       All Rights Reserved
-// 
-// This document contains information that is proprietary to Mentor Graphics
-// Corp. The original recipient of this document may duplicate this  
-// document in whole or in part for internal business purposes only, provided  
-// that this entire notice appears in all copies. In duplicating any part of  
-// this document, the recipient agrees to make every reasonable effort to  
-// prevent the unauthorized use and distribution of the proprietary information.
-//
-////////////////////////////////////////////////////////////////////////////////
-
+/**************************************************************************
+ *                                                                        *
+ *  Algorithmic C (tm) DSP Library                                        *
+ *                                                                        *
+ *  Software Version: 3.2                                                 *
+ *                                                                        *
+ *  Release Date    : Fri Aug 23 10:38:50 PDT 2019                        *
+ *  Release Type    : Production Release                                  *
+ *  Release Build   : 3.2.0                                               *
+ *                                                                        *
+ *  Copyright , Mentor Graphics Corporation,                     *
+ *                                                                        *
+ *  All Rights Reserved.                                                  *
+ *  
+ **************************************************************************
+ *  Licensed under the Apache License, Version 2.0 (the "License");       *
+ *  you may not use this file except in compliance with the License.      * 
+ *  You may obtain a copy of the License at                               *
+ *                                                                        *
+ *      http://www.apache.org/licenses/LICENSE-2.0                        *
+ *                                                                        *
+ *  Unless required by applicable law or agreed to in writing, software   * 
+ *  distributed under the License is distributed on an "AS IS" BASIS,     * 
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or       *
+ *  implied.                                                              * 
+ *  See the License for the specific language governing permissions and   * 
+ *  limitations under the License.                                        *
+ **************************************************************************
+ *                                                                        *
+ *  The most recent version of this package is available at github.       *
+ *                                                                        *
+ *************************************************************************/
 //**********************************************************************************************************
 //
 // File: ac_cic_full_core.h
@@ -38,7 +55,7 @@
 using namespace std;
 #endif
 
-//************************************************************************************
+//=======================================================================================
 //
 // Class: ac_cic_full_core_intg
 // Description: Integrator chain class for full precision implementation
@@ -47,7 +64,7 @@ using namespace std;
 //   decIntgCore()  -- Integrator chain for decimation configuration of the filter
 //   intrIntgCore() -- Integrator chain for interpolation configuration of the filter
 //
-//************************************************************************************
+//---------------------------------------------------------------------------------------
 
 template < class IN_TYPE, class OUT_TYPE, unsigned R_, unsigned M_, unsigned N_ >
 class ac_cic_full_core_intg
@@ -57,9 +74,11 @@ private:
   ac_int < 8, false >  rate_cnt1;
   ac_int < 8, false >  rate_cnt;
   OUT_TYPE             intg_reg[N_];
-
-  // Function: intStage
-  // Description: Implements integrators for number of stages configured
+  
+	//--------------------------------------------------------------------------------------
+	// Member Function: intStage()
+	// Description: Implements integrators for number of stages configured 
+	//
   void intStage(OUT_TYPE data_in, OUT_TYPE &data_out) {
 #pragma unroll yes
     INTG_STG: for (int i = N_ - 1; i > 0; i--) {
@@ -84,11 +103,12 @@ public:
     ac::init_array < AC_VAL_0 > (intg_reg, N_);
   }
 
-  // Function: decIntgCore
-  // Description:
-  //   Integrator chain for decimation configuration of the filter
-  //   and calls intStage() for integrator chain.
-  //   valid and dvalid signals insure R_ -1 data are are discarded
+//--------------------------------------------------------------------------------------
+// Member Function: decIntgCore()
+// Description: Integrator chain for decimation configuration of the filter
+// and calls intStage() for integrator chain.
+// valid and dvalid signals insure R_ -1 data are are discarded
+//
   void decIntgCore(IN_TYPE data_in, OUT_TYPE &data_out) {
     OUT_TYPE data_out_t;
     OUT_TYPE data_in_t;
@@ -116,10 +136,12 @@ public:
 
   }
 
-  // Function: intrIntgCore
-  // Description:
-  //   Integrator chain for interpolation configuration of the filter that calls intStage() for integrator chain.
-  //   This function also ensures that the correct number of zeroes are inserted between samples.
+//------------------------------------------------------------------------------------------
+// Member Function: intrIntgCore()
+// Description: Integrator chain for interpolation configuration of the filter that calls 
+// intStage() for integrator chain. This function also ensures that the correct number of 
+// zeroes are inserted between samples.
+//
   void intrIntgCore(OUT_TYPE data_in, OUT_TYPE &data_out) {
     OUT_TYPE data_in_t;
 
@@ -140,7 +162,7 @@ public:
   }
 };
 
-//**************************************************************************
+//==========================================================================================
 //
 // Class: ac_cic_full_core_diff
 // Description: differentiator chain class for full precision implementation
@@ -149,7 +171,7 @@ public:
 //   decDiffCore() - Implements differentiator chain for decimation
 //   intrDiffCore() - Implements differentiator chain for interpolation
 //
-//**************************************************************************
+//-------------------------------------------------------------------------------------------
 
 template < class IN_TYPE, class OUT_TYPE, unsigned R_, unsigned M_, unsigned N_ >
 class ac_cic_full_core_diff
@@ -162,10 +184,12 @@ public: // Functions
     ac::init_array < AC_VAL_0 > (&comb_dly_ln[0][0], N_ * M_);
   }
 
-  // Function: decDiffCore
-  // Description:
-  //   Implements differentiator chain for decimation configuration of the filter
-  //   by calling comb() function
+//------------------------------------------------------------------------------------------
+// Member Function: decDiffCore()
+// Description: Implements differentiator chain for decimation configuration of the filter
+// by calling comb() function
+//
+
   void decDiffCore(OUT_TYPE data_in, OUT_TYPE &data_out) {
     OUT_TYPE data_in_t, data_out_t;
     data_in_t = data_in;
@@ -173,10 +197,12 @@ public: // Functions
     data_out = data_out_t;
   }
 
-  // Function: intrDiffCore
-  // Description:
-  //   Implements differentiator chain for interpolation configuration of the filter
-  //   by calling comb() function
+//--------------------------------------------------------------------------------------------
+// Member Function: intrDiffCore()
+// Description: Implements differentiator chain for interpolation configuration of the filter
+// by calling comb() function
+//
+
   void intrDiffCore(IN_TYPE data_in, OUT_TYPE &data_out) {
     OUT_TYPE data_in_t, data_out_t;
     data_in_t = (OUT_TYPE) data_in;
@@ -187,11 +213,13 @@ public: // Functions
 private: // Data
   OUT_TYPE comb_dly_ln[N_][M_];
 
-private: // Functions
+// Functions
 
-  // Function: comb
-  // Description:
-  //   Implements multiple differentiator stages based on number of stages configured
+//----------------------------------------------------------------------------------------------
+// Member Function: comb()
+// Description: Implements multiple differentiator stages based on number of stages configured
+//
+
   void comb(OUT_TYPE data_in, OUT_TYPE &data_out) {
     OUT_TYPE data_in_comb_stg;
     OUT_TYPE data_out_comb_stg;
@@ -206,9 +234,10 @@ private: // Functions
     }
     data_out = data_out_comb_stg;
   }
-
-  // Function: diffStage
-  // Description: Single differentiator stage with differential delay M_
+//-------------------------------------------------------------------------------------------
+// Member Function: diffStage()
+// Description: Single differentiator stage with differential delay M_
+//
   void diffStage(OUT_TYPE data_in, ac_int < 8, false > k, OUT_TYPE &data_out) {
     data_out = data_in - comb_dly_ln[k][M_ - 1];
 #pragma unroll yes

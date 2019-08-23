@@ -1,18 +1,35 @@
-////////////////////////////////////////////////////////////////////////////////
-// Catapult Synthesis
-// 
-// Copyright (c) 2003-2018 Mentor Graphics Corp.
-//       All Rights Reserved
-// 
-// This document contains information that is proprietary to Mentor Graphics
-// Corp. The original recipient of this document may duplicate this  
-// document in whole or in part for internal business purposes only, provided  
-// that this entire notice appears in all copies. In duplicating any part of  
-// this document, the recipient agrees to make every reasonable effort to  
-// prevent the unauthorized use and distribution of the proprietary information.
-//
-////////////////////////////////////////////////////////////////////////////////
-
+/**************************************************************************
+ *                                                                        *
+ *  Algorithmic C (tm) DSP Library                                        *
+ *                                                                        *
+ *  Software Version: 3.2                                                 *
+ *                                                                        *
+ *  Release Date    : Fri Aug 23 10:38:50 PDT 2019                        *
+ *  Release Type    : Production Release                                  *
+ *  Release Build   : 3.2.0                                               *
+ *                                                                        *
+ *  Copyright , Mentor Graphics Corporation,                     *
+ *                                                                        *
+ *  All Rights Reserved.                                                  *
+ *  
+ **************************************************************************
+ *  Licensed under the Apache License, Version 2.0 (the "License");       *
+ *  you may not use this file except in compliance with the License.      * 
+ *  You may obtain a copy of the License at                               *
+ *                                                                        *
+ *      http://www.apache.org/licenses/LICENSE-2.0                        *
+ *                                                                        *
+ *  Unless required by applicable law or agreed to in writing, software   * 
+ *  distributed under the License is distributed on an "AS IS" BASIS,     * 
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or       *
+ *  implied.                                                              * 
+ *  See the License for the specific language governing permissions and   * 
+ *  limitations under the License.                                        *
+ **************************************************************************
+ *                                                                        *
+ *  The most recent version of this package is available at github.       *
+ *                                                                        *
+ *************************************************************************/
 //*********************************************************************************************************
 //
 // File: ac_cic_intr_full.h
@@ -69,6 +86,8 @@
 #include <ac_channel.h>
 #include <ac_dsp/ac_cic_full_core.h>      /* Core functionality for the filter, common for C++ and System C */
 
+#include <mc_scverify.h>
+
 // Templatized structs for computing power of a number.
 template <int base, int expon>
 struct power {
@@ -80,8 +99,13 @@ struct power<base, 0> {
   enum { value = 1 };
 };
 
-// This struct provides parameterized bitwidths to ensure a lossless intermediate type for the CIC filter.
-// W, I and S are word width, integer width and signedness of the input.
+//=========================================================================
+// Struct: find_inter_type_cic_intr
+// Description: This struct provides parameterized bitwidths to ensure a 
+// lossless intermediate type for the CIC filter.
+// W, I and S are word width, integer width and signedness of the input. 
+//-------------------------------------------------------------------------
+
 template <class IN_TYPE, unsigned R, unsigned M, unsigned N>
 struct find_inter_type_cic_intr {
   enum {
@@ -104,20 +128,32 @@ struct find_inter_type_cic_intr {
   typedef ac_fixed<outW, outI, true> INT_TYPE;
 };
 
-//*******************************************************************************************************
-//
-//  class "ac_cic_intr_full"
-//
-//  This class contains the run() function, as well as, integrator and differentiator functions for
-//  interpolation and decimation respectively. When all the stages of the filters have same precision,
-//  HW utilization can be achieved by partially unrolling low rate differentiator loop to allow adders
-//  to be reused without degrading the throughput.
-//
-//*******************************************************************************************************
+//=============================================================================================================
+// Class: ac_cic_dec_full
+// Description: This class contains the run() function, as well as, integrator and differentiator functions for
+// interpolation and decimation respectively. When all the stages of the filters have same precision,
+// HW utilization can be achieved by partially unrolling low rate differentiator loop to allow adders
+// to be reused without degrading the throughput.
+//-------------------------------------------------------------------------------------------------------------
 
 template < class IN_TYPE, class OUT_TYPE, unsigned R_, unsigned M_, unsigned N_ >
 class ac_cic_intr_full        /* CIC class for full precision implementation */
 {
+public: 
+  // Constructor
+  ac_cic_intr_full() : intg_inst(true) { }
+
+//------------------------------------------------------------------------------------------------------
+// Member Function: run()
+// Description: run() is top function for C++ module.
+
+#pragma hls_pipeline_init_interval 1
+#pragma hls_design interface
+  void CCS_BLOCK(run)(ac_channel < IN_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out) {
+    intrDiff(data_in, inf);      // differentiator chain for Interpolation
+    intrIntg(inf, data_out);     // Integrator chain for Interpolation
+  }
+
 private:
   // Find a lossless intermediate type to be used for computations in the core design.
   typedef typename find_inter_type_cic_intr <IN_TYPE, R_, M_, N_>::INT_TYPE INT_TYPE;
@@ -127,13 +163,13 @@ private:
   // Instantiate object of differentiator core class in a similar manner
   ac_cic_full_core_diff < INT_TYPE, INT_TYPE, R_, M_, N_ > diff_inst;
   ac_channel < INT_TYPE > inf;   // interface between integrator and differentiator chain
-#if !defined(__SYNTHESIS__) && defined(AC_CIC_INTR_FULL_H_DEBUG)
-  bool print_once;
-#endif
+  
+//------------------------------------------------------------------------------------------------------
+// Member Function: intrDiff()
+// Description: intrDiff is comb/differentiator section for interpolation filter and for C++ module.
+// It creates object of differentiator core class "cic_full_core_diff" and calls its member function
+// intrDiffCore. see ac_cic_full_core.h for intrDiffCore.
 
-  // intrDiff is comb/differentiator section for interpolation filter and for C++ module.
-  // It creates object of differentiator core class "cic_full_core_diff" and calls its member function
-  // intrDiffCore. see ac_cic_full_core.h for intrDiffCore.
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design
   void intrDiff(ac_channel < IN_TYPE > &data_in, ac_channel < INT_TYPE > &data_out) {
@@ -149,10 +185,13 @@ private:
       data_out.write(data_out_t);
     }
   }
+  
+//------------------------------------------------------------------------------------------------------
+// Member Function: intrDiff()
+// Description: intrIntg is integrator section for interpolation filter and for C++ module.
+// It creates object of inegrator core calss "cic_f_core_intg" and calls its member function
+// intrIntgCore(). see ac_cic_full_core.h for intrIntgCore().
 
-  // intrIntg is integrator section for interpolation filter and for C++ module.
-  // It creates object of inegrator core calss "cic_f_core_intg" and calls its member function
-  // intrIntgCore(). see ac_cic_full_core.h for intrIntgCore().
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design
   void intrIntg(ac_channel < INT_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out) {
@@ -177,30 +216,6 @@ private:
     }
   }
 
-public: // Functions
-  // Constructor
-  ac_cic_intr_full() : intg_inst(true) 
-  {
-#if !defined(__SYNTHESIS__) && defined(AC_CIC_INTR_FULL_H_DEBUG)
-    print_once = true;
-#endif
-  }
-
-  // run() is top function for C++ module. Based on filter type configured
-  // it instantiates integrator and comb sections as hierarchical blocks.
-#pragma hls_pipeline_init_interval 1
-#pragma hls_design interface
-  void run(ac_channel < IN_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out) {
-    intrDiff(data_in, inf);      // differentiator chain for Interpolation
-    intrIntg(inf, data_out);     // Integrator chain for Interpolation
-
-#if !defined(__SYNTHESIS__) && defined(AC_CIC_INTR_FULL_H_DEBUG)
-    if (print_once) {
-      print_once = false;
-      cout << "INT_TYPE = " << INT_TYPE::type_name() << endl;
-    }
-#endif
-  }
 
 };
 

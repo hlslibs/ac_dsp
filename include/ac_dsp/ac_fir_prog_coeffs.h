@@ -1,18 +1,35 @@
-////////////////////////////////////////////////////////////////////////////////
-// Catapult Synthesis
-// 
-// Copyright (c) 2003-2018 Mentor Graphics Corp.
-//       All Rights Reserved
-// 
-// This document contains information that is proprietary to Mentor Graphics
-// Corp. The original recipient of this document may duplicate this  
-// document in whole or in part for internal business purposes only, provided  
-// that this entire notice appears in all copies. In duplicating any part of  
-// this document, the recipient agrees to make every reasonable effort to  
-// prevent the unauthorized use and distribution of the proprietary information.
-//
-////////////////////////////////////////////////////////////////////////////////
-
+/**************************************************************************
+ *                                                                        *
+ *  Algorithmic C (tm) DSP Library                                        *
+ *                                                                        *
+ *  Software Version: 3.2                                                 *
+ *                                                                        *
+ *  Release Date    : Fri Aug 23 10:38:50 PDT 2019                        *
+ *  Release Type    : Production Release                                  *
+ *  Release Build   : 3.2.0                                               *
+ *                                                                        *
+ *  Copyright , Mentor Graphics Corporation,                     *
+ *                                                                        *
+ *  All Rights Reserved.                                                  *
+ *  
+ **************************************************************************
+ *  Licensed under the Apache License, Version 2.0 (the "License");       *
+ *  you may not use this file except in compliance with the License.      * 
+ *  You may obtain a copy of the License at                               *
+ *                                                                        *
+ *      http://www.apache.org/licenses/LICENSE-2.0                        *
+ *                                                                        *
+ *  Unless required by applicable law or agreed to in writing, software   * 
+ *  distributed under the License is distributed on an "AS IS" BASIS,     * 
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or       *
+ *  implied.                                                              * 
+ *  See the License for the specific language governing permissions and   * 
+ *  limitations under the License.                                        *
+ **************************************************************************
+ *                                                                        *
+ *  The most recent version of this package is available at github.       *
+ *                                                                        *
+ *************************************************************************/
 //*****************************************************************************************//
 //
 // File: ac_fir_prog_coeffs.h
@@ -55,30 +72,30 @@
 
 #include <ac_fixed.h>
 #include <ac_int.h>
+#include <ac_channel.h>
 
 // Make sure that the enum is only defined once.
 #ifndef __FIR_FILTER_TYPES_ENUM_DEF__
 #define __FIR_FILTER_TYPES_ENUM_DEF__
 // The parameters within this enum help the user choose between different filter architectures.
 typedef enum { SHIFT_REG, ROTATE_SHIFT, C_BUFF, FOLD_EVEN, FOLD_ODD, TRANSPOSED, FOLD_EVEN_ANTI, FOLD_ODD_ANTI } FTYPE;
-
 #endif
 
-
+#include <mc_scverify.h>
 
 /*
  * class Declarations
  */
 
+//===============================================================================================================
+// Class: fir_prog_coeffs_core
+// Description: This class "fir_prog_coeffs_core" is the core class for programmable coefficient FIR filters.
+// The class member functions implement different architectures for FIR filter.
+//---------------------------------------------------------------------------------------------------------------
+
 template < class IN_TYPE, class OUT_TYPE, class COEFF_TYPE, class ACC_TYPE, int N_TAPS >
 class fir_prog_coeffs_core
 {
-private: // Data
-  IN_TYPE reg[N_TAPS];                                      // shift register for filter implementation
-  ACC_TYPE reg_trans[N_TAPS];                               // register for transpose form filter implementation
-  ac_int < ac::log2_ceil < N_TAPS >::val + 1, false > wptr; // Read pointer for circular buffer implementation
-  ac_int < ac::log2_ceil < N_TAPS >::val + 1, true > rptr;  // write pointer for circular buffer implementation
-
 public: // Functions
   // Constructor
   fir_prog_coeffs_core() {
@@ -88,7 +105,10 @@ public: // Functions
     rptr = 0;
   }
 
-  // firShiftReg() implements shift register for the Filter
+//------------------------------------------------------------------------------------------------------
+// Member Function: firShiftReg()
+// Description: firShiftReg() implements a shift register for the Filter
+
   void firShiftReg(IN_TYPE din) {
 #pragma hls_unroll yes
     SHIFT:
@@ -97,7 +117,10 @@ public: // Functions
     }
   }
 
-  // firCircularBuffWrite() implements a circular buffer write operation
+//------------------------------------------------------------------------------------------------------
+// Member Function: firCircularBuffWrite()
+// Description: firCircularBuffWrite() implements a Circular buffer write operation
+
   void firCircularBuffWrite(IN_TYPE din) {
     reg[wptr] = din;
     if (wptr == N_TAPS - 1) {
@@ -107,7 +130,10 @@ public: // Functions
     }
   }
 
-  // firCircularBuffRead() implements a circular buffer read operation
+//------------------------------------------------------------------------------------------------------
+// Member Function: firCircularBuffRead()
+// Description: firCircularBuffRead() implements a Circular buffer read operation
+
   IN_TYPE firCircularBuffRead(ac_int < ac::log2_ceil < N_TAPS >::val, false > idx) {
     rptr = wptr - 1 - idx;
     if (rptr < 0) {
@@ -116,7 +142,10 @@ public: // Functions
     return reg[rptr];
   }
 
-  // firProgCoeffsShiftReg() Implements a non symmetric FIR filter with shift register
+//------------------------------------------------------------------------------------------------------
+// Member Function: firProgCoeffsShiftReg()
+// Description: firProgCoeffsShiftReg() implements a non symmetric FIR filter with shift register
+
   void firProgCoeffsShiftReg(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
     firShiftReg(data_in);
@@ -127,7 +156,10 @@ public: // Functions
     data_out = acc;
   }
 
-  // firProgCoeffsRotateShift() implements a rotational shift based implementation
+//------------------------------------------------------------------------------------------------------
+// Member Function: firProgCoeffsRotateShift()
+// Description: firProgCoeffsRotateShift() implements a Rotational shift based implementation
+
   void firProgCoeffsRotateShift(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
     IN_TYPE temp_rotate;
@@ -144,7 +176,10 @@ public: // Functions
     data_out = acc;
   }
 
-  // firProgCoeffsCircularBuff() Circular Buffer based implementation
+//------------------------------------------------------------------------------------------------------
+// Member Function: firProgCoeffsCircularBuff()
+// Description: firProgCoeffsCircularBuff() implements a Circular Buffer based implementation
+
   void firProgCoeffsCircularBuff(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
     MAC:
@@ -157,8 +192,11 @@ public: // Functions
     data_out = acc;
   }
 
-  // firProgCoeffsShiftRegSymmetricEvenTaps() implements a symmetric filter with even number of Taps
-  // and shift register based implementation
+//----------------------------------------------------------------------------------------------------------------
+// Member Function: firProgCoeffsShiftRegSymmetricEvenTaps()
+// Description: firProgCoeffsShiftRegSymmetricEvenTaps() implements a symmetric filter with even number of Taps
+// and shift register based implementation
+
   void firProgCoeffsShiftRegSymmetricEvenTaps(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
     firShiftReg(data_in);
@@ -169,8 +207,11 @@ public: // Functions
     data_out = acc;
   }
 
-  // firProgCoeffsShiftRegSymmetricOddTaps() implements a symmetric filter with odd number of Taps
-  // and shift register based implementation
+//--------------------------------------------------------------------------------------------------------------
+// Member Function: firProgCoeffsShiftRegSymmetricOddTaps()
+// Description: firProgCoeffsShiftRegSymmetricOddTaps() implements a symmetric filter with odd number of Taps
+// and shift register based implementation
+
   void firProgCoeffsShiftRegSymmetricOddTaps(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
     ACC_TYPE fold = 0;
@@ -187,7 +228,10 @@ public: // Functions
     data_out = acc;
   }
 
-  // firProgCoeffsTransposed() implements a transpose form of the filter
+//------------------------------------------------------------------------------------------------------
+// Member Function: firProgCoeffsTransposed()
+// Description: firProgCoeffsTransposed() implements the transposed form of the filter
+
   void firProgCoeffsTransposed(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE temp = 0;
     IN_TYPE in = data_in;
@@ -204,9 +248,17 @@ public: // Functions
     data_out = reg_trans[N_TAPS - 1];
   }
 
+private: // Data
+  IN_TYPE reg[N_TAPS];                                      // shift register for filter implementation
+  ACC_TYPE reg_trans[N_TAPS];                               // register for transpose form filter implementation
+  ac_int < ac::log2_ceil < N_TAPS >::val + 1, false > wptr; // Read pointer for circular buffer implementation
+  ac_int < ac::log2_ceil < N_TAPS >::val + 1, true > rptr;  // write pointer for circular buffer implementation
 };
 
-#include <ac_channel.h>
+//===================================================================================================================
+// Class: ac_fir_prog_coeffs
+// Description: This class contains the top function for the programmable coefficient FIR filter ('run()'). 
+//-------------------------------------------------------------------------------------------------------------------
 
 template < class IN_TYPE, class OUT_TYPE, class COEFF_TYPE, class ACC_TYPE, int N_TAPS, FTYPE ftype = SHIFT_REG >
 class ac_fir_prog_coeffs
@@ -217,16 +269,19 @@ private: // Data
   // Internal array that stores coefficients data
   COEFF_TYPE coeffs[N_TAPS];
 
-public: // Functions
+public: 
   // Constructor
   ac_fir_prog_coeffs() {
     ac::init_array < AC_VAL_DC > (coeffs, N_TAPS);
-  };
+  }
+
+//------------------------------------------------------------------------------------------------------
+// Member Function: run()
+// Description: run() is top function for C++ module.
+
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design interface
-  // run() is top function for C++ module. Based on filter type configured
-  // it instantiates the desired filter function
-  void run(ac_channel < IN_TYPE > &data_in, ac_channel < COEFF_TYPE > &coeffs_ch, ac_channel < OUT_TYPE > &data_out) {
+  void CCS_BLOCK(run)(ac_channel < IN_TYPE > &data_in, ac_channel < COEFF_TYPE > &coeffs_ch, ac_channel < OUT_TYPE > &data_out) {
     IN_TYPE core_in;
     OUT_TYPE core_out;
 
@@ -257,7 +312,6 @@ public: // Functions
       data_out.write(core_out);
     }
   }
-
 };
 
 #endif

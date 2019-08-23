@@ -1,18 +1,35 @@
-////////////////////////////////////////////////////////////////////////////////
-// Catapult Synthesis
-// 
-// Copyright (c) 2003-2018 Mentor Graphics Corp.
-//       All Rights Reserved
-// 
-// This document contains information that is proprietary to Mentor Graphics
-// Corp. The original recipient of this document may duplicate this  
-// document in whole or in part for internal business purposes only, provided  
-// that this entire notice appears in all copies. In duplicating any part of  
-// this document, the recipient agrees to make every reasonable effort to  
-// prevent the unauthorized use and distribution of the proprietary information.
-//
-////////////////////////////////////////////////////////////////////////////////
-
+/**************************************************************************
+ *                                                                        *
+ *  Algorithmic C (tm) DSP Library                                        *
+ *                                                                        *
+ *  Software Version: 3.2                                                 *
+ *                                                                        *
+ *  Release Date    : Fri Aug 23 10:38:50 PDT 2019                        *
+ *  Release Type    : Production Release                                  *
+ *  Release Build   : 3.2.0                                               *
+ *                                                                        *
+ *  Copyright , Mentor Graphics Corporation,                     *
+ *                                                                        *
+ *  All Rights Reserved.                                                  *
+ *  
+ **************************************************************************
+ *  Licensed under the Apache License, Version 2.0 (the "License");       *
+ *  you may not use this file except in compliance with the License.      * 
+ *  You may obtain a copy of the License at                               *
+ *                                                                        *
+ *      http://www.apache.org/licenses/LICENSE-2.0                        *
+ *                                                                        *
+ *  Unless required by applicable law or agreed to in writing, software   * 
+ *  distributed under the License is distributed on an "AS IS" BASIS,     * 
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or       *
+ *  implied.                                                              * 
+ *  See the License for the specific language governing permissions and   * 
+ *  limitations under the License.                                        *
+ **************************************************************************
+ *                                                                        *
+ *  The most recent version of this package is available at github.       *
+ *                                                                        *
+ *************************************************************************/
 //***********************************************************************************************************//
 // File:         ac_poly_dec.h
 // Description:
@@ -53,6 +70,13 @@
 
 #include <ac_fixed.h>
 #include <ac_channel.h>
+// Include header for CCS_BLOCK
+#include <mc_scverify.h>
+
+//===================================================================================================================
+// Class: ac_poly_dec
+// Description: This class contains the top function for the polyphase decimator filter ('run()'). 
+//-------------------------------------------------------------------------------------------------------------------
 
 template < class IN_TYPE, class COEFF_TYPE, class STR_COEFF_TYPE, class ACC_TYPE, class OUT_TYPE, int NTAPS, int DF >
 class ac_poly_dec
@@ -65,9 +89,13 @@ public: // Functions
     acc = 0;
   };
 
+//------------------------------------------------------------------------------------------------------
+// Member Function: run()
+// Description: run() is top function for C++ module.
+//
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design interface
-  void run(ac_channel < IN_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out, ac_channel < STR_COEFF_TYPE > &coeffs_st) {
+  void CCS_BLOCK(run)( ac_channel < IN_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out, ac_channel < STR_COEFF_TYPE > &coeffs_st ) {
 #ifndef __SYNTHESIS__
     while (coeffs_st.available(1))
 #endif

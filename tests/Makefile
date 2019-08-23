@@ -8,7 +8,7 @@ ifeq "$(GCC_EXEC)" ""
 GCC_EXEC = g++
 endif
 
-CXXFLAGS = -g -std=c++11
+CXXFLAGS = -g -std=c++11 -I.
 LDFLAGS = -s -static-libstdc++
 WD = $(shell pwd)
 GCOV_ENABLED = false

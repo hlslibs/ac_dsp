@@ -1,18 +1,35 @@
-////////////////////////////////////////////////////////////////////////////////
-// Catapult Synthesis
-// 
-// Copyright (c) 2003-2018 Mentor Graphics Corp.
-//       All Rights Reserved
-// 
-// This document contains information that is proprietary to Mentor Graphics
-// Corp. The original recipient of this document may duplicate this  
-// document in whole or in part for internal business purposes only, provided  
-// that this entire notice appears in all copies. In duplicating any part of  
-// this document, the recipient agrees to make every reasonable effort to  
-// prevent the unauthorized use and distribution of the proprietary information.
-//
-////////////////////////////////////////////////////////////////////////////////
-
+/**************************************************************************
+ *                                                                        *
+ *  Algorithmic C (tm) DSP Library                                        *
+ *                                                                        *
+ *  Software Version: 3.2                                                 *
+ *                                                                        *
+ *  Release Date    : Fri Aug 23 10:38:50 PDT 2019                        *
+ *  Release Type    : Production Release                                  *
+ *  Release Build   : 3.2.0                                               *
+ *                                                                        *
+ *  Copyright , Mentor Graphics Corporation,                     *
+ *                                                                        *
+ *  All Rights Reserved.                                                  *
+ *  
+ **************************************************************************
+ *  Licensed under the Apache License, Version 2.0 (the "License");       *
+ *  you may not use this file except in compliance with the License.      * 
+ *  You may obtain a copy of the License at                               *
+ *                                                                        *
+ *      http://www.apache.org/licenses/LICENSE-2.0                        *
+ *                                                                        *
+ *  Unless required by applicable law or agreed to in writing, software   * 
+ *  distributed under the License is distributed on an "AS IS" BASIS,     * 
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or       *
+ *  implied.                                                              * 
+ *  See the License for the specific language governing permissions and   * 
+ *  limitations under the License.                                        *
+ **************************************************************************
+ *                                                                        *
+ *  The most recent version of this package is available at github.       *
+ *                                                                        *
+ *************************************************************************/
 /************************************************************************************
 // File:       ac_mv_avg.h
 //
@@ -58,28 +75,26 @@
 #include <ac_fixed.h>
 #include <ac_window.h>
 #include <ac_channel.h>
+#include <mc_scverify.h>
 
-/*
- * Class declarations:
- * class ac_mv_avg_core is the core class of the filter
- */
+//===================================================================================================================
+// Class: ac_mv_avg_core
+// Description: The class ac_mv_avg_core is the core class of the filter 
+//-------------------------------------------------------------------------------------------------------------------
 
 template < int MAX_SAMPLE, int TAPS, ac_window_mode WIN_TYPE, class IN_TYPE, class OUT_TYPE, class ACC_TYPE, class COEFF_TYPE >
 class ac_mv_avg_core
 {
-
-private: // Data
-  ac_window_1d_flag < IN_TYPE, TAPS, WIN_TYPE > w;
-  ACC_TYPE acc_reg;
-  const COEFF_TYPE *const coeffs;
-
 public: // Functions
   // Constructor
   ac_mv_avg_core(const COEFF_TYPE *const ptr) : coeffs(ptr) {
     acc_reg = 0;
   }
 
-  // mvAvgCore()  is core function of the filter and it multiplies with weights and accumulates the input data
+//--------------------------------------------------------------------------------------------------------------------------
+// Member Function: mvAvgCore()
+// Description: mvAvgCore()  is core function of the filter and it multiplies with weights and accumulates the input data
+
   void mvAvgCore(IN_TYPE data_in, ac_int < 1, false > sol, ac_int < 1, false > eol, OUT_TYPE &data_out, bool &valid) {
     w.write(data_in, sol, eol);
     valid = w.valid();
@@ -93,20 +108,19 @@ public: // Functions
     }
   }
 
+private: // Data
+  ac_window_1d_flag<IN_TYPE,TAPS,WIN_TYPE>    w;
+  ACC_TYPE                                    acc_reg;
+  const COEFF_TYPE *const                     coeffs;
 };
 
-/*
- * class Declarations
- */
-
-/*
- * class "ac_mv_avg"
- */
+//===============================================================================================================
+// Class: ac_mv_avg
+//---------------------------------------------------------------------------------------------------------------
 
 template < int MAX_SAMPLE, int TAPS, ac_window_mode WIN_TYPE, class IN_TYPE, class OUT_TYPE, class ACC_TYPE, class COEFF_TYPE, class S_TYPE >
 class ac_mv_avg
 {
-
 public:
   // This pointer is set to public so that the user can extract the coeffs array from the base class and use it for their own
   // purposes in their testbench.
@@ -115,10 +129,14 @@ public:
   // constructor with pointer of const coeff array as an arg
   ac_mv_avg(const COEFF_TYPE *const c_ptr) : cff_ptr(c_ptr) { }
 
+//------------------------------------------------------------------------------------------------------
+// Member Function: run()
+// Description: run() is top function for C++ module.
+
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design interface
   // run() is top function for C++
-  void run(ac_channel < IN_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out, ac_channel < S_TYPE > &n_sample) {
+  void CCS_BLOCK(run)(ac_channel < IN_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out, ac_channel < S_TYPE > &n_sample) {
     ac_int < 1, false > sol;
     ac_int < 1, false > eol;
     bool valid;

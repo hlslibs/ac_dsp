@@ -1,119 +1,182 @@
-////////////////////////////////////////////////////////////////////////////////
-// Catapult Synthesis
-// 
-// Copyright (c) 2003-2018 Mentor Graphics Corp.
-//       All Rights Reserved
-// 
-// This document contains information that is proprietary to Mentor Graphics
-// Corp. The original recipient of this document may duplicate this  
-// document in whole or in part for internal business purposes only, provided  
-// that this entire notice appears in all copies. In duplicating any part of  
-// this document, the recipient agrees to make every reasonable effort to  
-// prevent the unauthorized use and distribution of the proprietary information.
-//
-////////////////////////////////////////////////////////////////////////////////
-
+/**************************************************************************
+ *                                                                        *
+ *  Algorithmic C (tm) DSP Library                                        *
+ *                                                                        *
+ *  Software Version: 3.2                                                 *
+ *                                                                        *
+ *  Release Date    : Fri Aug 23 10:38:50 PDT 2019                        *
+ *  Release Type    : Production Release                                  *
+ *  Release Build   : 3.2.0                                               *
+ *                                                                        *
+ *  Copyright , Mentor Graphics Corporation,                     *
+ *                                                                        *
+ *  All Rights Reserved.                                                  *
+ *  
+ **************************************************************************
+ *  Licensed under the Apache License, Version 2.0 (the "License");       *
+ *  you may not use this file except in compliance with the License.      * 
+ *  You may obtain a copy of the License at                               *
+ *                                                                        *
+ *      http://www.apache.org/licenses/LICENSE-2.0                        *
+ *                                                                        *
+ *  Unless required by applicable law or agreed to in writing, software   * 
+ *  distributed under the License is distributed on an "AS IS" BASIS,     * 
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or       *
+ *  implied.                                                              * 
+ *  See the License for the specific language governing permissions and   * 
+ *  limitations under the License.                                        *
+ **************************************************************************
+ *                                                                        *
+ *  The most recent version of this package is available at github.       *
+ *                                                                        *
+ *************************************************************************/
 //*********************************************************************************************************
 // File: ac_fft_dif_r2pX_dyn_inpl.h
 //
 // Description:
-//    Nomenclature:
-//                           ac_fft_dif_r2pX_dyn_inpl
-//                         /    /    |   \     \      \                              
-//                        /   FFT    |  R-2^x   \      \                             
-//                  C-view           |          Dynamic  In-place
-//                        Decimation in Frequency
+//  This FFT implements a Radix-2^x, DIF architecture where the number of FFT points can be dynamically 
+//  programmed.
+//  The ac_fft_dif_r2pX_dyn_inpl class serves as a C++ interface to the core class. The
+//  ac_fft_dif_r2pX_dyn_inpl_core class is generic and intended to work well even with SystemC
+//  implementations in addition to the supplied C++ implementation. The core class
+//  instantiates the butterfly as an object of the 'ac_fft_dif_r2pX_dyn_inpl_butterfly' class,
+//  handles computation of the FFT Flow Graph and also fetches and writes data.
+//  The butterfly class implements the Radix-engine compromise, and the output of it is
+//  hard-coded to scale-down by half.
 //
-//    Organization:
-//     The ac_fft_dif_r2pX_dyn_inpl class serves as a C++ interface to the core class. The
-//     ac_fft_dif_r2pX_dyn_inpl_core class is generic and intended to work well even with SystemC
-//     implementations in addition to the supplied C++ implementation. The core class
-//     instantiates the butterfly as an object of the 'ac_fft_dif_r2pX_dyn_inpl_butterfly' class,
-//     handles computation of the FFT Flow Graph and also fetches and writes data.
-//     The butterfly class implements the Radix-engine compromise, and the output of it is
-//     hard-coded to scale-down by half.
-//     Order of Input/Output:
-//     Input -- Natural
-//     Output-- ORDER = 0 --> Bit reversed output
-//                    = 1 --> Natural output
+// Nomenclature:
+//       ac_fft_dif_r2pX_dyn_inpl
+//               |   |   |    |
+//               |   |   |    --- In-place Architecture
+//               |   |   -------- Dynamic
+//               |   ------------ Radix-2^x
+//               ---------------- Decimation in Frequency
+//
+// Order of Input/Output:
+//  Input  -- Natural
+//  Output -- ORDER = 0 --> Bit reversed output
+//                  = 1 --> Natural output
 //
 // Usage:
-//    A sample testbench and its implementation look like this:
-//    #include <ac_fft_dif_r2pX_dyn_inpl.h>
+//  A sample testbench and its implementation look like this:
+//  #include <ac_fft_dif_r2pX_dyn_inpl.h>
 //
-//    #include <mc_scverify.h>
+//  #include <mc_scverify.h>
 //
-//    CCS_MAIN(int arg, char **argc)
-//    {
-//      // Initialize object of FFT class with 4 FFT points, Radix = 2, bit-reversed output,
-//      // Twiddle bitwidth = 19, I/O bitwidth = 18, I/O Integer Width = 2.
-//      ac_fft_dif_r2pX_dyn_inpl < 4, 2, 0, 19, 18, 2 > fft_design1;
-//      typedef ac_complex<ac_fixed<18, 2, true, AC_TRN, AC_WRAP> > IO_type;
-//      // Initialize channels for input, output, dynamic reduction and number of instances.
-//      ac_channel<IO_type> input;
-//      ac_channel<IO_type> output;
-//      ac_channel<ac_int<ac::log2_ceil<ac::log2_ceil<4>::val-ac::log2_ceil<2>::val+1>::val,0> > dynstream;
-//      ac_channel<ac_int<ac::log2_ceil<4>::val-ac::log2_ceil<2>::val,0> > inststream;
-//      // Write 4 inputs to the input port, and set dynamic reduction = 0, no of instances = 1.
-//      input.write(IO_type( .125, .25));
-//      input.write(IO_type( .375, .50));
-//      input.write(IO_type(1.525, .75));
-//      input.write(IO_type( .125, .75));
-//      dynstream.write(0);
-//      inststream.write(1);
-//      // Call the top-level function.
-//      fft_design1.run(input, output, dynstream, inststream);
+//  CCS_MAIN(int arg, char **argc)
+//  {
+//    // Initialize object of FFT class with 4 FFT points, Radix = 2, bit-reversed output,
+//    // Twiddle bitwidth = 19, I/O bitwidth = 18, I/O Integer Width = 2.
+//    ac_fft_dif_r2pX_dyn_inpl < 4, 2, 0, 19, 18, 2 > fft_design1;
 //
-//      CCS_RETURN(0);
-//    }
+//    typedef ac_complex<ac_fixed<18, 2, true, AC_TRN, AC_WRAP> > IO_type;
+//
+//    // Declare channels for input, output, dynamic reduction and number of instances.
+//    ac_channel<IO_type> input;
+//    ac_channel<IO_type> output;
+//    ac_channel<ac_int<ac::log2_ceil<ac::log2_ceil<4>::val-ac::log2_ceil<2>::val+1>::val,0> > dynstream;
+//    ac_channel<ac_int<ac::log2_ceil<4>::val-ac::log2_ceil<2>::val,0> > inststream;
+//
+//    // Write 4 inputs to the input port, and set dynamic reduction = 0, no of instances = 1.
+//    input.write(IO_type( .125, .25));
+//    input.write(IO_type( .375, .50));
+//    input.write(IO_type(1.525, .75));
+//    input.write(IO_type( .125, .75));
+//    dynstream.write(0);
+//    inststream.write(1);
+//
+//    // Call the top-level function.
+//    fft_design1.run(input, output, dynstream, inststream);
+//
+//    CCS_RETURN(0);
+//  }
 //
 // Notes:
-//    Attempting to call the function with a type that is not implemented will result
-//    in a compile error.
-//    Currently, the block only accepts signed ac_complex<ac_fixed> inputs and outputs which use AC_TRN
-//    and AC_WRAP as their rounding and overflow modes.
-//    Dynamic Behaviour : The FFT Architecture is Dynamic in No of FFT Points and Instances
-//    to be Calculated in one call.
+//  Attempting to call the function with a type that is not implemented will result
+//  in a compile error.
+//  Currently, the block only accepts signed ac_complex<ac_fixed> inputs and outputs which use AC_TRN
+//  and AC_WRAP as their rounding and overflow modes.
+//  Dynamic Behaviour: The FFT Architecture is Dynamic in No of FFT Points and Instances
+//  to be Calculated in one call.
 //
 //*********************************************************************************************************
 
 #ifndef _INCLUDED_AC_DIF_R2PX_DYN_INPL_H_
 #define _INCLUDED_AC_DIF_R2PX_DYN_INPL_H_
 
+#include <ac_int.h>
 #include <ac_fixed.h>
 #include <ac_complex.h>
 #include <ac_channel.h>
+
+#ifdef COVER_ON
+#include <ac_assert.h>
+#endif
+
+// The coverAssert function uses the static_assert() function, which is only supported by C++11 or later
+// compiler standards. Hence, the user should be informed if they have defined COVER_ON but not used
+// C++11 or a later compiler standard.
+#if defined(ASSERT_ON) && __cplusplus < 201103L
+#error Please use C++11 or a later standard for compilation.
+#endif
+
+#include <mc_scverify.h>
+
 #ifndef __SYNTHESIS__
 #include <iostream>
 using namespace std;
 #endif
-const double pi = 3.141592653589793;
 
-//************************************************************************************
-// Description:
-// class "ac_fft_dif_r2pX_dyn_inpl_butterfly"
-//
-// class has member functions--
-// fftDifR2pXDynInplRadixButterfly( ) -- Radix Engine in Radix-2 Butterfly Structure
-// multResacle( ) -- Multiply with twiddle factor and scale by 1/2
-// compute( )     -- Compute FFT butterfly call
-//
-//************************************************************************************
+//=========================================================================
+// Class: ac_fft_dif_r2pX_dyn_inpl_butterfly
+// Description: Templatized class for a butterfly
+//-------------------------------------------------------------------------
 
-template < unsigned N_FFT, int RADX, class fix_p, class com_p, class complex_round, class com_rnd_ext, class com_mult, class com_tw > 
+template < unsigned N_FFT, int RADX, class fix_p, class com_p, class complex_round, class com_rnd_ext, class com_mult, class com_tw >
 class ac_fft_dif_r2pX_dyn_inpl_butterfly
 {
-  // Declaration of Member Functions
+public:
+  //-------------------------------------------------------------------------
+  // Member Function: compute
+  // Description: Top-level function of class, is called by core computation
+  // class.
+  //
+  void compute (ac_int < ac::log2_ceil < RADX >::val, 0 > RADIX_R_dyn, int stage_n, com_p x[RADX], com_p y[RADX], const com_tw w[RADX], const int scale_fac) {
+
+    com_rnd_ext xt[RADX];
+    com_rnd_ext xyt[RADX];
+    com_rnd_ext yt[RADX];
+
+    complex_round tmp_out;
+    com_tw tw[RADX];
+
+#pragma unroll yes
+    TWIDDLE_ROUNDING_LOOP: for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
+      xt[rad_itr] = x[rad_itr];
+      tw[rad_itr] = (com_tw) w[rad_itr];
+    }
+
+    fftDifR2pXDynInplRadixButterfly (RADIX_R_dyn, stage_n, xt, xyt, scale_fac);
+
+    multRescale (xyt,yt, tw, scale_fac);
+
+#pragma unroll yes
+    OUTPUT_ASSINGMENT_LOOP: for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
+      y[rad_itr] = yt[rad_itr];
+    }
+  }
+
 private:
-  // function 'fftDifR2pXDynInplRadixButterfly' performs Dynamic Radix Engine computation as Radix-2 flow graph
+  //-------------------------------------------------------------------------
+  // Member Function: fftDifR2pXDynInplRadixButterfly
+  // Description: Performs Dynamic Radix Engine computation as Radix-2 flow
+  // graph.
+  //
   void fftDifR2pXDynInplRadixButterfly (ac_int < ac::log2_ceil < RADX >::val, 0 > RADIX_R_dyn, int stage_n, com_rnd_ext x[RADX], com_rnd_ext y[RADX], const int scale_fac) {
-    const int logN = ac::log2_ceil < N_FFT >::val;
     const int logRad = ac::log2_ceil < RADX >::val;
-    const int loglogRad = ac::log2_ceil < logRad >::val;
-    const int mixR = logN % logRad;
     com_tw Rw;
 
-#include <twiddlesR_64bits.h>
+#include "twiddlesR_64bits.h"
 
 #pragma unroll yes
     RADIX_STAGE_LOOP: for (ac_int < logRad, 0 > Rstage = logRad - 1; Rstage >= 0; Rstage--) {
@@ -186,8 +249,8 @@ private:
         if ((((stage_n != 0)) || (!(Rstage >= (logRad - RADIX_R_dyn))) || (RADIX_R_dyn == 0))) {
           temp_tw = Rw;
         } else {
-          temp_tw.r () = 1;
-          temp_tw.i () = 0;
+          temp_tw.r() = 1;
+          temp_tw.i() = 0;
         }
         x[addrs2] = (com_rnd_ext) (temp_x * temp_tw);
         x[addrs1] = (com_rnd_ext) (x[addrs1]);
@@ -198,8 +261,8 @@ private:
         com_rnd_ext temp;
         bool ch_scale = 1 & (scale_fac >> (logRad - 1 - Rstage));
         if (ch_scale && (Rstage != 0)) {
-          temp.r () = (x[rad_itr].r () >> 1);
-          temp.i () = (x[rad_itr].i () >> 1);
+          temp.r() = (x[rad_itr].r() >> 1);
+          temp.i() = (x[rad_itr].i() >> 1);
         } else {
           temp = x[rad_itr];
         }
@@ -215,9 +278,13 @@ private:
     }
   }
 
-  // function 'multRescale' computes multiplication of twiddle factor and Rescales the Output of Multiplication
+  //-------------------------------------------------------------------------
+  // Member Function: multRescale
+  // Description: Computes Multiplication of twiddle factor and Rescales
+  // output of multiplication according to scale_fac.
   // scale_fac = 0 No scaling
   // scale_fac = 1 Scale down by 1/2
+  //
   void multRescale (com_rnd_ext x[RADX],com_rnd_ext yo[RADX], com_tw y[RADX], const int scale_fac) {
     const int logRad = ac::log2_ceil < RADX >::val;
     com_mult a[RADX], b[RADX], tx[RADX];
@@ -231,8 +298,8 @@ private:
       b[rad_itr] = y[rad_itr];
       tx[rad_itr] = a[rad_itr] * b[rad_itr];
       if (ch_scale) {
-        temp.r () = (tx[rad_itr].r () >> 1);
-        temp.i () = (tx[rad_itr].i () >> 1);
+        temp.r() = (tx[rad_itr].r() >> 1);
+        temp.i() = (tx[rad_itr].i() >> 1);
       } else {
         temp = tx[rad_itr];
       }
@@ -241,67 +308,34 @@ private:
 
     temps = x[0];
     if (ch_scale) {
-      temp.r () = (temps.r () >> 1);
-      temp.i () = (temps.i () >> 1);
+      temp.r() = (temps.r() >> 1);
+      temp.i() = (temps.i() >> 1);
     } else {
       temp = temps;
     }
     yo[0] = temp;
   }
 
-public:
-  void compute (ac_int < ac::log2_ceil < RADX >::val, 0 > RADIX_R_dyn, int stage_n, com_p x[RADX], com_p y[RADX], const com_tw w[RADX], const int scale_fac) {
-
-    com_rnd_ext xt[RADX];
-    com_rnd_ext xyt[RADX];
-    com_rnd_ext yt[RADX];
-
-    complex_round tmp_out;
-    com_tw tw[RADX];
-
-#pragma unroll yes
-    TWIDDLE_ROUNDING_LOOP: for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
-      xt[rad_itr] = x[rad_itr];
-      tw[rad_itr] = (com_tw) w[rad_itr];
-    }
-
-    fftDifR2pXDynInplRadixButterfly (RADIX_R_dyn, stage_n, xt, xyt, scale_fac);
-
-    multRescale (xyt,yt, tw, scale_fac);
-
-#pragma unroll yes
-    OUTPUT_ASSINGMENT_LOOP: for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
-      y[rad_itr] = yt[rad_itr];
-    }
-  }
-
 };
 
-//***********************************************************************************
-// Description:
-//
-//  'ac_fft_dif_r2pX_dyn_inpl_core' class has member functions--
-//  fftDifR2pXDynInplCore() -- Implements core functionality the FFT.
-//  bitrevint() -- Bitrevarsal ac_int
-//
-//***********************************************************************************
+//=========================================================================
+// Class: ac_fft_dif_r2pX_dyn_inpl_core
+// Description: Core class for FFT computation.
+//-------------------------------------------------------------------------
 
 template < unsigned N_FFT, int RADIX, int ORDER, int TWID_PREC, int DIF_D_P, int DIF_D_I >
 class ac_fft_dif_r2pX_dyn_inpl_core
 {
-public:
-  // Type definitions for Multipliers,Accumulator and stage variable for fft
-  typedef ac_fixed < TWID_PREC, 2, true, AC_RND_INF > tType;
-  typedef ac_complex < tType > cx_tType;
+private:
+  // Typedefs for public function args declared first, to avoid compile-time errors.
   typedef ac_fixed < DIF_D_P, DIF_D_I, true > dType;
   typedef ac_complex < dType > cx_dType;
-  typedef ac_fixed < DIF_D_P, DIF_D_I, true, AC_RND, AC_SAT > dround;
-  typedef ac_complex < dround > cx_dround;
-  typedef ac_fixed < DIF_D_P + TWID_PREC - 1, 1 + DIF_D_I, true > mType;
-  typedef ac_complex < mType > cx_mType;
-  typedef ac_fixed < DIF_D_P + 1, DIF_D_I + 1, true > b_dround;
-  typedef ac_complex < b_dround > cx_b_dround;
 
+public:
+  //-------------------------------------------------------------------------
+  // Member Function: bitrevint
+  // Description: Carries out bit-reversal on ac_int variables.
+  //
   template < int a > ac_int < a, 0 > bitrevint (ac_int < a, 0 > &Num) {
     ac_int < a, 0 > Num_br;
 
@@ -312,17 +346,19 @@ public:
     return Num_br;
   }
 
+  //-------------------------------------------------------------------------
+  // Member Function: fftDifR2pXDynInplCore
+  // Description: Implements core functionality of the FFT.
+  //
   void fftDifR2pXDynInplCore (ac_int < ac::log2_ceil < N_FFT >::val + 1, 0 > N_FFT_dyn,
                               ac_int < ac::log2_ceil < N_FFT >::val, 0 > logN_dyn,
                               cx_dType bank[RADIX][N_FFT / RADIX],
                               ac_int < ac::log2_ceil < N_FFT >::val, 0 > Nstage_dyn,
                               ac_int < ac::log2_ceil < ac::log2_ceil < N_FFT >::val - ac::log2_ceil < RADIX >::val + 1 >::val, 0 > &dyn_red,
                               ac_int < ac::log2_ceil < RADIX >::val, 0 > &RADIX_R_dyn, ac_int < ac::log2_ceil < N_FFT >::val - ac::log2_ceil < RADIX >::val, 0 > &instance_count) {
-    // FFT computation will be done in 'fftDifR2pXDynInplCore'
-#include <twiddles_64bits.h>
+#include "twiddles_64bits.h"
     // Actual FFT Constants
     const int logN_a = ac::log2_ceil < N_FFT >::val;
-    const int loglogN_a = ac::log2_ceil < logN_a >::val;
     const int logRad = ac::log2_ceil < RADIX >::val;
     const int mixR = logN_a % logRad;
     const int RADIX_R = (logRad - mixR) % logRad;
@@ -354,7 +390,7 @@ public:
 
     ac_int < logN_a, 0 > logRxStage = logN_dyn + RADIX_R_dyn;
 
-    /* Printing on std Output */
+    // Printing on std Output
 #ifndef __SYNTHESIS__
     cout << "FFT Max = " << N_FFT << " Radix = " << RADIX << " Dynamic Reduction = " << dyn_red << " N_FFT dynamic = " << N_FFT_dyn << " Instances = " << instance_count << endl;
 #endif
@@ -512,7 +548,7 @@ public:
 #pragma unroll yes
           BITREVERSE_TWIDDLE_ADDRESS: for (ac_int < logRad + 1, 0 > n_itr = 0; n_itr < RADIX; n_itr++) {
             ac_int < logRad, 0 > n_nmsb = n_itr;
-            n_nmsb = bitrevint < logRad > (n_nmsb);
+            n_nmsb = bitrevint(n_nmsb);
             if ((i == Nstage_dyn - 1) && (RADIX_R_dyn != 0)) {
               n_vac[n_nmsb] = ((n_itr >> RADIX_R_dyn) * (n + ((n_nmsb >> (logRad - RADIX_R_dyn)) * ((N_FFT / RADIX)))));
             } else {
@@ -587,14 +623,13 @@ public:
                 twd = twiddle_12[t];
                 break;
             }
-            tw.r () = ((1 & ((n << 2) >> (logNminone))) | (1 & ((n << 1) >> (logNminone)))) ? (tType) (-twd.r ()) : (tType) (twd.r ());
-            tw.i () = ((!(1 & ((n << 2) >> (logNminone)))) | (1 & ((n << 1) >> (logNminone)))) ? (tType) (twd.i ()) : (tType) (-twd.i ());
+            tw.r() = ((1 & ((n << 2) >> (logNminone))) | (1 & ((n << 1) >> (logNminone)))) ? (tType) (-twd.r()) : (tType) (twd.r());
+            tw.i() = ((!(1 & ((n << 2) >> (logNminone)))) | (1 & ((n << 1) >> (logNminone)))) ? (tType) (twd.i()) : (tType) (-twd.i());
             tw = ((1 & ((n << 2) >> (logNminone))) ^ (1 & ((n << 1) >> (logNminone)))) && ((logNminone) >= 2) ? (cx_tType) (J * tw.conj ()) : (cx_tType) tw;
             tw = n[logNminone] ? (cx_tType) (-tw) : (cx_tType) (tw);
             tw_vac[tw_itr] = tw;
           }
-        }                   // BOX == 0 Loop
-        int temp_count = 0;
+        } // BOX == 0 Loop
 
         // Note: this design is hard-coded to scale all outputs by 1/2. If you do not want that to happen, substitute the "N_FFT - 1" in the equation below with an
         // integer whose bit pattern encodes the desired scaling of all stages, where the LSB is scaling of the output stage and MSB is scaling of the input stage.
@@ -646,147 +681,81 @@ public:
       if (i == 0) { break; }              // Breaking Stage Loop
     }                           // Stage Loop End
   }
+  
+private:
+  // Type definitions for Multipliers,Accumulator and stage variable for fft
+  typedef ac_fixed < TWID_PREC, 2, true, AC_RND_INF > tType;
+  typedef ac_complex < tType > cx_tType;
+  typedef ac_fixed < DIF_D_P, DIF_D_I, true, AC_RND, AC_SAT > dround;
+  typedef ac_complex < dround > cx_dround;
+  typedef ac_fixed < DIF_D_P + TWID_PREC - 1, 1 + DIF_D_I, true > mType;
+  typedef ac_complex < mType > cx_mType;
+  typedef ac_fixed < DIF_D_P + 1, DIF_D_I + 1, true > b_dround;
+  typedef ac_complex < b_dround > cx_b_dround;
 };
 
-#ifdef ASSERT_ON
-#include <ac_assert.h>
-#endif
-#ifdef COVER_ON
-#include <ac_cover.h>
-#endif
+//==================================================================================
+// Class: ac_fft_dif_r2pX_dyn_inpl
+// Description:
+// Top-level class of design, instantiated by testbench.
+// HLS Interface: run()
+//----------------------------------------------------------------------------------
 
-//**************************************************************************************************************************
-//
-// class "ac_fft_dif_r2pX_dyn_inpl"
-//
-// class has member functions--
-// void run( )                      -- Implements FFT C-View
-// void coverAssert( )              -- Cover & Assert core contains basic Asserts and cover Conditions
-// ac_int shiftcr( )                -- Bitwise Circular Shift
-// ac_int bitrevint( )              -- Bit-Rversal ac_int
-//
-//
-//  Template Info:
-//  template < unsigned N_FFT, int RADIX, int ORDER, int TWIDDLE_PREC, int DIF_D_P, int DIF_D_I >
-//
-//  N_FFT       : Maximum No. of FFT Points can Calculated in one call
-//  ORDER       : Order of Output 0 = Bitreversed, 1 = Natural
-//  TWIDDLE_PREC: Twiddle Bit Precision
-//  DIF_D_P     : Bit-precision of Calculation
-//  DIF_D_I     : Integer Part in Bits
-//  Port Info:
-//  run (ac_channel inst, ac_channel outst, ac_channel dyn_red_chn, ac_channel ins_count);
-//
-//  Input Ports:
-//  Three Input Ports
-//  1. Input Data Port   : Port is used for Data Input of given width. Order of Data is expected to be Sequential.
-//  2. Dynamic Reduction : Port is used for Change in FFT Points Dynamically for value = 1 on this Port No. FFT
-//                         Points will reduce to N_FFT/2 similarly for =2, N_FFT/4 and so on till Dynamic FFT
-//                         Points reaches value equals to RADIX
-//  3. No of Dynamic FFT : Port is used for No. of Dynamic FFT Instance. Maximum value of also depends
-//        Instances        on value Dynamic Reduction eg. Dynamic Reducton = 2 then, FFT Point = N_FFT/4 it means
-//                         RAM is capable of N_FFT( Maximum No. of FFT Points ) only N_FFT/4 is used thus instance
-//                         port can have any value from [0~3]
-//                         0      = Maximum Possible Instances that is 4 instance for above example
-//                         1~3    = No of Instances to be calculated
-//                         4~onwd = equivalent to Maximum no. of Instances
-//  Output Port
-//  1.Output Data Port   : Port is used for Data Output of given width, Order of Output Data is Dependent on value of 'ORDER' in template
-//
-//                                   ________________________
-//                                  |                        |
-//                                  |                        |
-//    INPUT DATA------------------->|     DYNAMIC  FFT       |
-//                                  |         WITH           |
-//                                  |      GENERIC MIX       |
-//    DYNAMIC REDUCTION------------>|         RADIX          |------------>OUTPUT DATA
-//                                  |        IN-PLACE        |
-//                                  |      ARCHITECTURE      |
-//    INSTANCES COUNT-------------->|                        |
-//                                  |                        |
-//                                  |________________________|
-//
-//
-//**************************************************************************************************************************
-
-template < unsigned N_FFT, int RADIX, int ORDER, int TWIDDLE_PREC, int DIF_D_P, int DIF_D_I > 
+template < unsigned N_FFT, int RADIX, int ORDER, int TWIDDLE_PREC, int DIF_D_P, int DIF_D_I >
 class ac_fft_dif_r2pX_dyn_inpl
 {
 private:
+  enum {
+    INS_W = ac::log2_ceil<N_FFT>::val - ac::log2_ceil<RADIX>::val,
+    DYN_W = ac::log2_ceil<INS_W + 1>::val
+  };
+
   typedef ac_fixed < DIF_D_P, DIF_D_I, true > dif_fxp_data;
   typedef ac_complex < dif_fxp_data > dif_input, dif_output;
-  typedef ac_int < ac::log2_ceil < ac::log2_ceil < N_FFT >::val - ac::log2_ceil < RADIX >::val + 1 >::val, 0 > dyn_port;
-  typedef ac_int < ac::log2_ceil < N_FFT >::val - ac::log2_ceil < RADIX >::val, 0 > ins_port;
+  typedef ac_int<INS_W, 0> ins_port;
+  typedef ac_int<DYN_W, 0> dyn_port;
 
-  ac_fft_dif_r2pX_dyn_inpl_core < N_FFT, RADIX, ORDER, TWIDDLE_PREC, DIF_D_P, DIF_D_I > fft;
-  dif_input bank[RADIX][N_FFT / RADIX];
-
-  //   Above line Instantiate RAM inside the design, RAM must mapped to a dual port Memory
-  //   RAM will be spliced into n dual-port memories where n = 'RADIX'
-  //   for Example
-  //
-  //   N_FFT (FFT Max) = 32, Radix = 4
-  //
-  //     Initial State of Bank
-  //   Bank 1  Bank 2  Bank 3  Bank 4
-  //     [X]     [X]     [X]     [X]
-  //     [X]     [X]     [X]     [X]
-  //     [X]     [X]     [X]     [X]
-  //     [X]     [X]     [X]     [X]
-  //     [X]     [X]     [X]     [X]
-  //     [X]     [X]     [X]     [X]
-  //     [X]     [X]     [X]     [X]
-  //     [X]     [X]     [X]     [X]
-
-  // coverAssert() used for basic template assert condition. This helps to validate if object
-  // of this class created by the user has right set of parameters defined for it. Code will assert
-  // during run-time if incorrect template values are used.
-
-  void coverAssert () {
-#ifdef ASSERT_ON
-    AC_ASSERT((N_FFT == 2) || (N_FFT == 4) || (N_FFT == 8) || (N_FFT == 16) || (N_FFT == 32) || (N_FFT == 64) || (N_FFT == 128) || (N_FFT == 256) || (N_FFT == 512) || (N_FFT == 1024) || (N_FFT == 2048) || (N_FFT == 4096) || (N_FFT == 8192), "Number of FFT points not supported");
-    AC_ASSERT((RADIX == 2) || (RADIX == 4) || (RADIX == 8) || (RADIX == 16) || (RADIX == 32) || (RADIX == 64) || (RADIX == 128), "Radix Value not supported.");
-    AC_ASSERT(TWIDDLE_PREC <= 32, "Twiddle factor bitwidth greater than 32");
-    AC_ASSERT(TWIDDLE_PREC >=  2, "Twiddle factor bitwidth lesser than 2");
-    AC_ASSERT(DIF_D_P >= DIF_D_I, "Stage total bitwidth lesser than integer bitwidth.");
-#endif
-#ifdef COVER_ON
-    cover (TWIDDLE_PREC <= 5);
-#endif
-  }
-
-  template < int n >
-  ac_int < n, 0 > shiftcr (ac_int < n, 0 > &input, ac_int < n, 0 > &shft) {
-    const int logn = ac::log2_ceil < n >::val;
-
-    ac_int < n, 0 > output;
-    ac_int < logn + 1, 0 > ckr;
-#pragma unroll yes
-    CIRCULAR_SHIFT: for (ac_int < logn + 1, 0 > itr = 0;; itr++) {
-      ckr = (itr + shft) % n;
-      output[itr] = input[ckr];
-
-      if (itr == n - 1) { break; }
-    }
-    return output;
-  }
-
-  template < int a >
-  ac_int < a, 0 > bitrevint (ac_int < a, 0 > &Num) {
-    ac_int < a, 0 > Num_br;
-
-#pragma unroll yes
-    BITREVERSE: for (ac_int < a + 1, 0 > itrator = 0; itrator < a; itrator++) {
-      Num_br[a - 1 - itrator] = Num[itrator]; // bitreversal ac_int
-    }
-    return Num_br;
-  }
 public:
-
-  ac_fft_dif_r2pX_dyn_inpl () { // Constructor
+  //-------------------------------------------------------------------------
+  // Constructor
+  //
+  ac_fft_dif_r2pX_dyn_inpl () {
     ac::init_array < AC_VAL_DC > (&bank[0][0], N_FFT);
   }
 
+  //---------------------------------------------------------------------------------------------------------------------------------------
+  // Member Function: run
+  // Description: Top-level function, called by testbench.
+  //
+  // Input Ports:
+  // Three Input Ports
+  // 1. Input Data Port   : Port is used for Data Input of given width. Order of Data is expected to be Sequential.
+  // 2. Dynamic Reduction : Port is used for Change in FFT Points Dynamically for value = 1 on this Port No. FFT
+  //                        Points will reduce to N_FFT/2 similarly for =2, N_FFT/4 and so on till Dynamic FFT
+  //                        Points reaches value equals to RADIX
+  // 3. No of Dynamic FFT : Port is used for No. of Dynamic FFT Instance. Maximum value of also depends
+  //       Instances        on value Dynamic Reduction eg. Dynamic Reducton = 2 then, FFT Point = N_FFT/4 it means
+  //                        RAM is capable of N_FFT( Maximum No. of FFT Points ) only N_FFT/4 is used thus instance
+  //                        port can have any value from [0~3]
+  //                        0      = Maximum Possible Instances that is 4 instance for above example
+  //                        1~3    = No of Instances to be calculated
+  //                        4~onwd = equivalent to Maximum no. of Instances
+  // Output Port
+  // 1. Output Data Port   : Port is used for Data Output of given width, Order of Output Data is Dependent on value of 'ORDER' in template
+  //
+  //                                   ________________________
+  //                                  |                        |
+  //                                  |                        |
+  //    INPUT DATA------------------->|     DYNAMIC  FFT       |
+  //                                  |         WITH           |
+  //                                  |      GENERIC MIX       |
+  //    DYNAMIC REDUCTION------------>|         RADIX          |------------>OUTPUT DATA
+  //                                  |        IN-PLACE        |
+  //                                  |      ARCHITECTURE      |
+  //    INSTANCE COUNT--------------->|                        |
+  //                                  |                        |
+  //                                  |________________________|
+  //
 #pragma hls_design interface
   void CCS_BLOCK(run) (ac_channel < dif_input > &inst, ac_channel < dif_output > &outst, ac_channel < dyn_port > &dyn_red_chn, ac_channel < ins_port > &ins_count) {
     coverAssert ();
@@ -797,19 +766,16 @@ public:
     const int mixR = logN % logRad;
     const int Nstage = logN / logRad + 1;
 
-    if (dyn_red_chn.available(1) & ins_count.available(1))
-    {
+    if (dyn_red_chn.available(1) & ins_count.available(1)) {
       dyn_port dyn_red = dyn_red_chn.read ();      // Reading Dynamic Reduction Port
       ins_port instance_count = ins_count.read (); // Reading Instance Count Port
 
-      if (inst.available (((instance_count == 0) ? (ac_int < logN + 1, false >) (N_FFT) : (ac_int < logN + 1, false >) ((N_FFT >> dyn_red) * instance_count))))
-      {
+      if (inst.available (((instance_count == 0) ? (ac_int < logN + 1, false >) (N_FFT) : (ac_int < logN + 1, false >) ((N_FFT >> dyn_red) * instance_count)))) {
         // Computing Dynamic characteristic of FFT
         ac_int < logN + 1, false > N_FFT_dyn = N_FFT >> dyn_red;
         ac_int < logN, 0 > logN_dyn = logN - dyn_red;
         ac_int < logN, 0 > Nstage_dyn = Nstage - (dyn_red >= mixR) - (dyn_red >= (mixR + logRad)) - (dyn_red >= (mixR + 2 * logRad)) - (dyn_red >= (mixR + 3 * logRad)) - (dyn_red >= (mixR + 4 * logRad)) - (dyn_red >= (mixR + 5 * logRad)) - (dyn_red >= (mixR + 6 * logRad)) - (dyn_red >= (mixR + 7 * logRad)) - (dyn_red >= (mixR + 8 * logRad)) - (dyn_red >= (mixR + 9 * logRad)) - (dyn_red >= (mixR + 10 * logRad)) - (dyn_red >= (mixR + 11 * logRad)) - (dyn_red >= (mixR + 12 * logRad));
         ac_int < logRad, 0 > RADIX_R_dyn = Nstage_dyn * logRad - logN_dyn;
-        ac_int < logRad, 0 > mixR_dyn = (RADIX_R_dyn == 0) ? (ac_int < logRad, 0 >) 0 : (ac_int < logRad, 0 >) (logRad - RADIX_R_dyn);
 
         ac_int < logN - logRad + 1, 0 > fix_zero_wire_wdth = ((1 << (logN - dyn_red - logRad)) - 1);
 
@@ -859,7 +825,7 @@ public:
         INPUT_DYN_ADDR_BLOCK_LOOP: for (ac_int < logN + 1, false > blk = 0; blk < N_FFT; blk++) {
           ac_int < logRad, 0 > bank_temp, bank_add;
           bank_temp = blk.template slc < logRad > (logN - logRad - dyn_red);
-          bank_add = shiftcr < logRad > (bank_temp, RADIX_R_dyn);
+          bank_add = shiftcr(bank_temp, RADIX_R_dyn);
           bank[bank_add][(blk & j_mask) | ((blk >> logRad) & (~j_mask))] = inst.read ();
 
           if ((blk & ((1 << (logN - dyn_red)) - 1)) == ((N_FFT - 1) >> dyn_red)) {
@@ -920,14 +886,14 @@ public:
             ac_int < logN + 1, false > i = blk & j_mask;
             m_no_msb = blk.template slc < logRad > (logN - logRad - dyn_red);
             ac_int < logN - logRad + 1, 0 > blk_r = ((blk >> logRad) & (~j_mask));
-            bank_add = bitrevint < logRad > (m_no_msb);
+            bank_add = fft.bitrevint(m_no_msb);
             m_no_msb = bank_add;
 #pragma unroll yes
             OUTPUT_LOOP_NATURAL_SLICE: for (int p = 0; p <= (logN - logRad); p = (p + logRad)) {
               out_add.set_slc (p, m_no_msb);
             }
             mem_intr = i;
-            mem_intr = bitrevint < logN - logRad + 1 > (mem_intr);
+            mem_intr = fft.bitrevint(mem_intr);
             mem_intr = mem_intr >> (dyn_red + 1);
             mem_add = ((fix_zero_wire_wdth) & (mem_intr ^ out_add));
             mem_add = mem_add | blk_r;
@@ -1002,9 +968,66 @@ public:
         }
       }
     }
-
   }
 
+  //-------------------------------------------------------------------------
+  // Member Function: coverAssert
+  // Description: used for basic template assert condition. This helps to 
+  // validate if object of this class created by the user has right set of
+  // parameters defined for it. Code will assert during compile-time if incorrect
+  // template values are used.
+  //
+  void coverAssert () {
+#ifdef ASSERT_ON
+    static_assert(N_FFT == 2   || N_FFT == 4   || N_FFT == 8    || N_FFT == 16   || N_FFT == 32   || N_FFT == 64 || N_FFT == 128 ||
+                  N_FFT == 256 || N_FFT == 512 || N_FFT == 1024 || N_FFT == 2048 || N_FFT == 4096, "N_FFT is not a power of two");
+    static_assert(RADIX == 2 || RADIX == 4 || RADIX == 8 || RADIX == 16 || RADIX == 32 || RADIX == 64 || RADIX == 128, "Radix Value not supported");
+    static_assert(TWIDDLE_PREC <= 32, "Twiddle bitwidth greater than 32");
+    static_assert(TWIDDLE_PREC >= 2,  "Twiddle bitwidth lesser than 2");
+    static_assert(DIF_D_P >= DIF_D_I,  "Stage integer width lesser than bitwidth");
+#endif
+#ifdef COVER_ON
+    cover (TWIDDLE_PREC <= 5);
+#endif
+  }
+
+private:
+  ac_fft_dif_r2pX_dyn_inpl_core < N_FFT, RADIX, ORDER, TWIDDLE_PREC, DIF_D_P, DIF_D_I > fft;
+  // The below line instantiates RAM inside the design. RAM must mapped to a dual port Memory.
+  // RAM will be spliced into n dual-port memories where n = RADIX
+  // For Example:
+  //
+  // N_FFT (FFT Max) = 32, Radix = 4
+  //
+  //   Initial State of Bank
+  // Bank 1  Bank 2  Bank 3  Bank 4
+  //   [X]     [X]     [X]     [X]
+  //   [X]     [X]     [X]     [X]
+  //   [X]     [X]     [X]     [X]
+  //   [X]     [X]     [X]     [X]
+  //   [X]     [X]     [X]     [X]
+  //   [X]     [X]     [X]     [X]
+  //   [X]     [X]     [X]     [X]
+  //   [X]     [X]     [X]     [X]
+  dif_input bank[RADIX][N_FFT / RADIX];
+
+  //-------------------------------------------------------------------------
+  // Member Function: shiftcr
+  // Description: Implements bitwise circular shift.
+  //
+  template < int n >
+  ac_int < n, 0 > shiftcr (ac_int < n, 0 > &input, ac_int < n, 0 > &shft) {
+    const int logn = ac::log2_ceil < n >::val;
+
+    ac_int < n, 0 > output;
+    ac_int < logn + 1, 0 > ckr;
+#pragma unroll yes
+    CIRCULAR_SHIFT: for (ac_int < logn + 1, 0 > itr = 0; itr < n; itr++) {
+      ckr = (itr + shft) % n;
+      output[itr] = input[ckr];
+    }
+    return output;
+  }
 };
 
 #endif
