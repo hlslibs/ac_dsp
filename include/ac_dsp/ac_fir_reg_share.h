@@ -1,18 +1,35 @@
-////////////////////////////////////////////////////////////////////////////////
-// Catapult Synthesis
-// 
-// Copyright (c) 2003-2018 Mentor Graphics Corp.
-//       All Rights Reserved
-// 
-// This document contains information that is proprietary to Mentor Graphics
-// Corp. The original recipient of this document may duplicate this  
-// document in whole or in part for internal business purposes only, provided  
-// that this entire notice appears in all copies. In duplicating any part of  
-// this document, the recipient agrees to make every reasonable effort to  
-// prevent the unauthorized use and distribution of the proprietary information.
-//
-////////////////////////////////////////////////////////////////////////////////
-
+/**************************************************************************
+ *                                                                        *
+ *  Algorithmic C (tm) DSP Library                                        *
+ *                                                                        *
+ *  Software Version: 3.2                                                 *
+ *                                                                        *
+ *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Type    : Production Release                                  *
+ *  Release Build   : 3.2.1                                               *
+ *                                                                        *
+ *  Copyright , Mentor Graphics Corporation,                     *
+ *                                                                        *
+ *  All Rights Reserved.                                                  *
+ *  
+ **************************************************************************
+ *  Licensed under the Apache License, Version 2.0 (the "License");       *
+ *  you may not use this file except in compliance with the License.      * 
+ *  You may obtain a copy of the License at                               *
+ *                                                                        *
+ *      http://www.apache.org/licenses/LICENSE-2.0                        *
+ *                                                                        *
+ *  Unless required by applicable law or agreed to in writing, software   * 
+ *  distributed under the License is distributed on an "AS IS" BASIS,     * 
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or       *
+ *  implied.                                                              * 
+ *  See the License for the specific language governing permissions and   * 
+ *  limitations under the License.                                        *
+ **************************************************************************
+ *                                                                        *
+ *  The most recent version of this package is available at github.       *
+ *                                                                        *
+ *************************************************************************/
 //************************************************************************************
 // File:         ac_fir_reg_share.h
 //
@@ -54,6 +71,7 @@
 
 #include <ac_fixed.h>
 #include <ac_int.h>
+#include <ac_channel.h>
 
 // Make sure that the enum is only defined once.
 #ifndef __FIR_FILTER_TYPES_ENUM_DEF__
@@ -63,10 +81,16 @@ typedef enum { SHIFT_REG, ROTATE_SHIFT, C_BUFF, FOLD_EVEN, FOLD_ODD, TRANSPOSED,
 
 #endif
 
+#include <mc_scverify.h>
+
 typedef ac_fixed < 16,1, true > DEFAULT_TYPE;
 
 //class Declarations
 
+//===================================================================================================================
+// Class: fir_reg_share_core
+// Description: The class member functions implement different architectures for FIR filter.
+//-------------------------------------------------------------------------------------------------------------------
 
 template < class IN_TYPE, class OUT_TYPE, class COEFF_TYPE, class ACC_TYPE, int N_TAPS, int MEM_WORD_WIDTH, int BLK_SZ, int BLK_OFFSET >
 class fir_reg_share_core
@@ -75,7 +99,7 @@ class fir_reg_share_core
 private: // Data
   IN_TYPE *reg;
 
-public: // Functions
+public: 
   // Constructor
   fir_reg_share_core() { };
 
@@ -83,7 +107,10 @@ public: // Functions
     reg = ptr_t;
   }
 
-  // firShiftReg() implements shift register for the Filter
+//------------------------------------------------------------------------------------------------------
+// Member Function: firShiftReg()
+// Description: firShiftReg() implements a shift register for the Filter
+
   void firShiftReg(IN_TYPE din) {
 #pragma hls_unroll yes
     SHIFT: for (int i = (N_TAPS - 1); i >= 0; i--) {
@@ -91,11 +118,18 @@ public: // Functions
     }
   }
 
+//------------------------------------------------------------------------------------------------------
+// Member Function: firProgCoeffsDelayLine()
+// Description: firProgCoeffsDelayLine() implements a delay line
+
   void firProgCoeffsDelayLine(OUT_TYPE &data_out) {
     data_out = reg[N_TAPS -1];
   }
 
-  // firProgCoeffsShiftReg() Implements non symmetric FIR filter with shift register
+//------------------------------------------------------------------------------------------------------
+// Member Function: firProgCoeffsShiftReg()
+// Description: firProgCoeffsShiftReg() implements a non symmetric FIR filter with shift register
+
   void firProgCoeffsShiftReg(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
     int ram_addr = 0;
@@ -111,8 +145,11 @@ public: // Functions
     data_out = acc;
   }
 
-  // firProgCoeffsShiftRegSymmetricEvenTaps() symmetric filter with even number of Taps
-  // and shift register based implementation
+//----------------------------------------------------------------------------------------------------------------
+// Member Function: firProgCoeffsShiftRegSymmetricEvenTaps()
+// Description: firProgCoeffsShiftRegSymmetricEvenTaps() implements a symmetric filter with even number of Taps
+// and shift register based implementation
+
   void firProgCoeffsShiftRegSymmetricEvenTaps(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
     int ram_addr = 0;
@@ -127,6 +164,11 @@ public: // Functions
     }
     data_out = acc;
   }
+
+//------------------------------------------------------------------------------------------------------------------------
+// Member Function: firProgCoeffsShiftRegAntiSymmetricEvenTaps()
+// Description: firProgCoeffsShiftRegAntiSymmetricEvenTaps() implements a anti-symmetric filter with even number of Taps
+// and shift register based implementation
 
   void firProgCoeffsShiftRegAntiSymmetricEvenTaps(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
@@ -143,8 +185,11 @@ public: // Functions
     data_out = acc;
   }
 
-  // firProgCoeffsShiftRegSymmetricOddTaps() symmetric filter with odd number of Taps
-  // and shift register based implementation
+//--------------------------------------------------------------------------------------------------------------
+// Member Function: firProgCoeffsShiftRegSymmetricOddTaps()
+// Description: firProgCoeffsShiftRegSymmetricOddTaps() implements a symmetric filter with odd number of Taps
+// and shift register based implementation
+
   void firProgCoeffsShiftRegSymmetricOddTaps(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
     ACC_TYPE fold = 0;
@@ -164,6 +209,11 @@ public: // Functions
     }
     data_out = acc;
   }
+
+//-----------------------------------------------------------------------------------------------------------------------
+// Member Function: firProgCoeffsShiftRegAntiSymmetricOddTaps()
+// Description: firProgCoeffsShiftRegAntiSymmetricOddTaps() implements a anti-symmetric filter with odd number of Taps
+// and shift register based implementation
 
   void firProgCoeffsShiftRegAntiSymmetricOddTaps(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
@@ -187,6 +237,13 @@ public: // Functions
 
 };
 
+#include <mc_scverify.h>
+
+//===================================================================================================================
+// Class: ac_fir_reg_share
+// Description: This class contains the top function for the register share filter ('run()'). 
+//-------------------------------------------------------------------------------------------------------------------
+
 template < int N_TAPS = 2, class IN_TYPE = DEFAULT_TYPE, class OUT_TYPE = DEFAULT_TYPE, class COEFF_TYPE = DEFAULT_TYPE, class ACC_TYPE = DEFAULT_TYPE, int MEM_WORD_WIDTH = 1, int BLK_SZ = 1, int BLK_OFFSET = 0,FTYPE ftype = SHIFT_REG >
 class ac_fir_reg_share
 {
@@ -202,8 +259,12 @@ public: // Functions
     ptr = ptr_t;
   };
 
+//------------------------------------------------------------------------------------------------------
+// Member Function: run()
+// Description: run() is top function for C++ module.
+
   // Based on filter type configured it instantiates the desired filter function
-  void run(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
+  void CCS_BLOCK(run)(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     IN_TYPE core_in;
     OUT_TYPE core_out;
 

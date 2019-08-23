@@ -1,18 +1,35 @@
-////////////////////////////////////////////////////////////////////////////////
-// Catapult Synthesis
-// 
-// Copyright (c) 2003-2018 Mentor Graphics Corp.
-//       All Rights Reserved
-// 
-// This document contains information that is proprietary to Mentor Graphics
-// Corp. The original recipient of this document may duplicate this  
-// document in whole or in part for internal business purposes only, provided  
-// that this entire notice appears in all copies. In duplicating any part of  
-// this document, the recipient agrees to make every reasonable effort to  
-// prevent the unauthorized use and distribution of the proprietary information.
-//
-////////////////////////////////////////////////////////////////////////////////
-
+/**************************************************************************
+ *                                                                        *
+ *  Algorithmic C (tm) DSP Library                                        *
+ *                                                                        *
+ *  Software Version: 3.2                                                 *
+ *                                                                        *
+ *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Type    : Production Release                                  *
+ *  Release Build   : 3.2.1                                               *
+ *                                                                        *
+ *  Copyright , Mentor Graphics Corporation,                     *
+ *                                                                        *
+ *  All Rights Reserved.                                                  *
+ *  
+ **************************************************************************
+ *  Licensed under the Apache License, Version 2.0 (the "License");       *
+ *  you may not use this file except in compliance with the License.      * 
+ *  You may obtain a copy of the License at                               *
+ *                                                                        *
+ *      http://www.apache.org/licenses/LICENSE-2.0                        *
+ *                                                                        *
+ *  Unless required by applicable law or agreed to in writing, software   * 
+ *  distributed under the License is distributed on an "AS IS" BASIS,     * 
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or       *
+ *  implied.                                                              * 
+ *  See the License for the specific language governing permissions and   * 
+ *  limitations under the License.                                        *
+ **************************************************************************
+ *                                                                        *
+ *  The most recent version of this package is available at github.       *
+ *                                                                        *
+ *************************************************************************/
 /***************************************************************************************
 // File:        ac_intg_dump.h
 //
@@ -53,10 +70,14 @@
 
 #include <ac_channel.h>
 
+#include <mc_scverify.h>
 /*
  * class Declarations
  */
 
+//===============================================================================================================
+// Class: ac_intg_dump_core
+//---------------------------------------------------------------------------------------------------------------
 template < class IN_TYPE, class ACC_TYPE, class OUT_TYPE, class N_TYPE, int NS, int CHN >
 class ac_intg_dump_core
 {
@@ -69,6 +90,9 @@ public: // Functions
     ac::init_array < AC_VAL_0 > (temp, CHN);
   }
 
+//------------------------------------------------------------------------------------------------------
+// Member Function: intgDumpCore()
+
   void intgDumpCore(IN_TYPE data_in, OUT_TYPE &data_out, N_TYPE n_sample, int i, int j, bool &flag) {
     temp[i] = temp[i] + data_in;
     if (j == n_sample) {
@@ -78,10 +102,11 @@ public: // Functions
     }
   }
 };
-
-/*
- * class "ac_intg_dump" has ac_intgDump_top() as top functions which further class core functionality
- */
+ 
+//===================================================================================================================
+// Class: ac_intg_dump
+// Description: This class contains the top functions which further class core functionality
+//-------------------------------------------------------------------------------------------------------------------
 
 template < class IN_TYPE, class ACC_TYPE, class OUT_TYPE, class N_TYPE, int NS, int CHN >
 class ac_intg_dump
@@ -93,9 +118,13 @@ public: // Functions
   // Constructor
   ac_intg_dump() {}
 
+//------------------------------------------------------------------------------------------------------
+// Member Function: run()
+// Description: run() is top function for C++ module.
+
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design interface
-  void run(ac_channel < IN_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out, ac_channel < N_TYPE > &n_sample) {
+  void CCS_BLOCK(run)(ac_channel < IN_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out, ac_channel < N_TYPE > &n_sample) {
     OUT_TYPE data_out_t;
     bool flag = false;
     N_TYPE n_sample_t;
