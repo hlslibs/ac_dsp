@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -105,11 +105,6 @@
 #endif
 
 #include <mc_scverify.h>
-
-#ifndef __SYNTHESIS__
-#include <iostream>
-using namespace std;
-#endif
 
 //=========================================================================
 // Class: ac_fft_dif_r2_inpl_butterfly
@@ -339,29 +334,20 @@ private:
 // Note: coverAssert() will be enabled if either macro COVER_ON/ASSERT_ON is defined
 //----------------------------------------------------------------------------------
 
-template < int N_FFT, int TWIDDLE_PREC, int DIF_D_P, int DIF_D_I >
+template < unsigned N_FFT, int TWIDDLE_PREC, int DIF_D_P, int DIF_D_I >
 class ac_fft_dif_r2_inpl
 {
-private:
-  // Typedefs for public function args declared first, to avoid compile-time errors.
-  typedef ac_fixed < DIF_D_P, DIF_D_I, true > dif_fxp_data;
-  typedef ac_complex < dif_fxp_data > dif_input, dif_output;
-
 public:
-  //----------------------------------------------------------------------
-  // Constructor
-  //
-  ac_fft_dif_r2_inpl() {
-    ac::init_array<AC_VAL_DC>(&bank_1[0], N_FFT/2);
-    ac::init_array<AC_VAL_DC>(&bank_2[0], N_FFT/2);
-  }
+  // Typedefs for public function args declared first, to avoid compile-time errors.
+  typedef ac_fixed<DIF_D_P, DIF_D_I, true> dif_fxp_data;
+  typedef ac_complex<dif_fxp_data> dif_input, dif_output;
 
   //----------------------------------------------------------------------
   // Member Function: run
   // Description: top-level interface to FFT
   //
 #pragma hls_design interface
-  void CCS_BLOCK(run)(ac_channel < dif_input > &inst, ac_channel < dif_output > &outst) {
+  void CCS_BLOCK(run)(ac_channel<dif_input> &inst, ac_channel<dif_output> &outst) {
     void coverAssert();
 #pragma hls_pipeline_init_interval 1
     INPUT_LOOP: for (int j = 0; j < N_FFT; j++) {
@@ -382,6 +368,14 @@ public:
         outst.write(bank_1[i >> 1]);
       }
     }
+  }
+
+  //----------------------------------------------------------------------
+  // Constructor
+  //
+  ac_fft_dif_r2_inpl() {
+    ac::init_array<AC_VAL_DC>(&bank_1[0], N_FFT/2);
+    ac::init_array<AC_VAL_DC>(&bank_2[0], N_FFT/2);
   }
 
   //----------------------------------------------------------------------

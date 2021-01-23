@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -93,6 +93,13 @@
 //  Currently, the block only accepts signed ac_complex<ac_fixed> inputs and outputs which use AC_TRN
 //  and AC_WRAP as their rounding and overflow modes.
 //
+// Revision History:
+//    3.3.0  - Added CDesignChecker waivers/fixes for ac_dsp IP blocks.
+//             Changes made in general:
+//               - CNS violations were waived away.
+//               - FXD violations were fixed by changing integer literals to floating point literals.
+//               - UMR violation fixed by using init_array to initialize shift register.
+//
 //*********************************************************************************************************
 
 #ifndef _INCLUDED_AC_FFT_DIF_R2_SDF_H_
@@ -151,7 +158,7 @@ public:
     } else {
       ac_int<STAGE + 2, false> n;
       n = (iterator) & ((1 << STAGE) - 1);
-      complext J = complext(0, 1);
+      complext J = complext(0.0, 1.0);
       ac_int<STAGE + 1, false> t;
       // Extraction of twiddle value from 1/8 Cycle of Complex exponential
       t = (1&((n << 2) >> STAGE))? (ac_int<STAGE + 1, false> )((((1 << STAGE) >> 2)) - (n & ((((1 << STAGE) >> 2))-1))):(ac_int<STAGE + 1, false>)(n&((((1 << STAGE) >> 2)) - 1));
@@ -177,6 +184,7 @@ public:
   //
   ac_fft_dif_r2_sdf_stage () {
     ac::init_array<AC_VAL_DC>(&memory_shift[0], 1 << STAGE);
+    ac::init_array<AC_VAL_DC>(&shift_reg[0], 1 << STAGE);
     // Reset action done here:
     iterator = 0;
     addr = 0;
@@ -295,83 +303,106 @@ public:
 
     // creating Stage Objects for FFT
 
+#pragma hls_waive CNS
     if (N_FFT >= 4096) {
       temp_11 =   (dif_complex_round)input;
       stage_init = true;
       stage_11.stageRun(temp_11, twiddle_11);
     }
 
+#pragma hls_waive CNS
     if (N_FFT >= 2048) {
+#pragma hls_waive CNS
       if (stage_init) { temp_10 = (dif_complex_round)temp_11; }
       else            { temp_10 = (dif_complex_round)input;   }
       stage_init = true;
       stage_10.stageRun(temp_10, twiddle_10);
     }
 
+#pragma hls_waive CNS
     if (N_FFT >= 1024) {
+#pragma hls_waive CNS
       if (stage_init) { temp_9 = (dif_complex_round)temp_10; }
       else            { temp_9 = (dif_complex_round)input;   }
       stage_init = true;
       stage_9.stageRun(temp_9, twiddle_9);
     }
 
+#pragma hls_waive CNS
     if (N_FFT >= 512) {
+#pragma hls_waive CNS
       if (stage_init) { temp_8 = (dif_complex_round)temp_9; }
       else            { temp_8 = (dif_complex_round)input;  }
       stage_init = true;
       stage_8.stageRun(temp_8, twiddle_8);
     }
 
+#pragma hls_waive CNS
     if (N_FFT >= 256) {
+#pragma hls_waive CNS
       if (stage_init) { temp_7 = (dif_complex_round)temp_8; }
       else            { temp_7 = (dif_complex_round)input;  }
       stage_init = true;
       stage_7.stageRun(temp_7, twiddle_7);
     }
 
+#pragma hls_waive CNS
     if (N_FFT >= 128) {
+#pragma hls_waive CNS
       if (stage_init) { temp_6 = (dif_complex_round)temp_7; }
       else            { temp_6 = (dif_complex_round)input;  }
       stage_init = true;
       stage_6.stageRun(temp_6, twiddle_6);
     }
 
+#pragma hls_waive CNS
     if (N_FFT >= 64) {
+#pragma hls_waive CNS
       if (stage_init) { temp_5 = (dif_complex_round)temp_6; }
       else            { temp_5 = (dif_complex_round)input;  }
       stage_init = true;
       stage_5.stageRun(temp_5, twiddle_5);
     }
 
+#pragma hls_waive CNS
     if (N_FFT >= 32) {
+#pragma hls_waive CNS
       if (stage_init) { temp_4 = (dif_complex_round)temp_5; }
       else            { temp_4 = (dif_complex_round)input;  }
       stage_init = true;
       stage_4.stageRun(temp_4, twiddle_4);
     }
 
+#pragma hls_waive CNS
     if (N_FFT >= 16) {
+#pragma hls_waive CNS
       if (stage_init) { temp_3 = (dif_complex_round)temp_4; }
       else            { temp_3 = (dif_complex_round)input;  }
       stage_init = true;
       stage_3.stageRun(temp_3, twiddle_3);
     }
 
+#pragma hls_waive CNS
     if (N_FFT >= 8) {
+#pragma hls_waive CNS
       if (stage_init) { temp_2 = (dif_complex_round)temp_3; }
       else            { temp_2 = (dif_complex_round)input;  }
       stage_init = true;
       stage_2.stageRun(temp_2, twiddle_2);
     }
 
+#pragma hls_waive CNS
     if (N_FFT >= 4) {
+#pragma hls_waive CNS
       if (stage_init) { temp_1 = (dif_complex_round)temp_2; }
       else            { temp_1 = (dif_complex_round)input;  }
       stage_init = true;
       stage_1.stageRun(temp_1, twiddle_1);
     }
 
+#pragma hls_waive CNS
     if (N_FFT >= 2) {
+#pragma hls_waive CNS
       if (stage_init) { temp_0 = (dif_complex_round)temp_1; }
       else            { temp_0 = (dif_complex_round)input;  }
       stage_init = true;
@@ -418,22 +449,13 @@ private:
 // HLS Interface: run()
 //----------------------------------------------------------------------------------
 
-template < unsigned N_FFT, int MEM_TH, int TWID_PREC, int DIF_D0_P, int DIF_D0_I >
+template<unsigned N_FFT, int MEM_TH, int TWID_PREC, int DIF_D0_P, int DIF_D0_I>
 class ac_fft_dif_r2_sdf
 {
-private:
+public:
   // Typedefs for public function args declared first, to avoid compile-time errors.
   typedef ac_fixed<DIF_D0_P, DIF_D0_I, true> dif_fx0;
   typedef ac_complex<dif_fx0> comp_dif;
-
-public:
-  //-------------------------------------------------------------------------
-  // Constructor
-  //
-  ac_fft_dif_r2_sdf() {
-    write_out = false;
-    b = 0;
-  };
 
   //-------------------------------------------------------------------------
   // Member Function: run
@@ -452,8 +474,8 @@ public:
       if (write_out) {
         y1.write(b);
       } else {
-        b.r() = 0;
-        b.i() = 0;
+        b.r() = 0.0;
+        b.i() = 0.0;
       }
       b = y;
     }
@@ -477,6 +499,15 @@ public:
     cover(TWID_PREC <= 5);
 #endif
   }
+
+  //-------------------------------------------------------------------------
+  // Constructor
+  //
+  ac_fft_dif_r2_sdf() {
+    write_out = false;
+    b.r() = 0.0;
+    b.i() = 0.0;
+  };
 
 private:
   bool write_out;

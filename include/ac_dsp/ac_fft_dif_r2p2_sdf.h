@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -120,7 +120,7 @@ using namespace std;
 // Description: templatized class for a stage
 //-------------------------------------------------------------------------
 
-template < int STAGE, int MEMORY_THRESHOLD, class com_p, class complex_round, class complex_rnd_ext, class com_mult_type, class complext, class complext_fix >
+template < int STAGE, int MEM_TH, class com_p, class complex_round, class complex_rnd_ext, class com_mult_type, class complext, class complext_fix >
 class ac_fft_dif_r2p2_sdf_stage
 {
 public:
@@ -282,7 +282,7 @@ private:
   // Description: read data from shift register or circular buffer
   //
   void readMem(complex_rnd_ext &out) {
-    if ((1 << STAGE) < (MEMORY_THRESHOLD)) {
+    if ((1 << STAGE) < (MEM_TH)) {
       out = shift_reg[(1 << STAGE) - 1];
     } else {
       out = memory_shift[addr & ((1 << STAGE) - 1)];
@@ -294,7 +294,7 @@ private:
   // Description: write data to shift register or circular buffer
   //
   void writeMem(complex_rnd_ext &in) {
-    if ((1 << STAGE) < (MEMORY_THRESHOLD)) {
+    if ((1 << STAGE) < (MEM_TH)) {
 #pragma unroll yes
       for (int i = (1 << STAGE) - 1; i > 0; i--) {
         shift_reg[i] = shift_reg[i - 1];
@@ -311,7 +311,7 @@ private:
 // Description: FFT core class - instantiates stage class to form FFT
 //-------------------------------------------------------------------------
 
-template <unsigned N_FFT, int MEMORY_THRESHOLD, int TWID_PREC, int DIF_D0_P, int DIF_D0_I>
+template <unsigned N_FFT, int MEM_TH, int TWID_PREC, int DIF_D0_P, int DIF_D0_I>
 class ac_fft_dif_r2p2_sdf_core
 {
 
@@ -433,18 +433,18 @@ private:
   typedef ac_complex<dif_fix_mul>                                      dif_comp_mul;
 
   // creating stage objects for FFT
-  ac_fft_dif_r2p2_sdf_stage <11, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_11;
-  ac_fft_dif_r2p2_sdf_stage <10, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_10;
-  ac_fft_dif_r2p2_sdf_stage < 9, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_9;
-  ac_fft_dif_r2p2_sdf_stage < 8, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_8;
-  ac_fft_dif_r2p2_sdf_stage < 7, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_7;
-  ac_fft_dif_r2p2_sdf_stage < 6, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_6;
-  ac_fft_dif_r2p2_sdf_stage < 5, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_5;
-  ac_fft_dif_r2p2_sdf_stage < 4, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_4;
-  ac_fft_dif_r2p2_sdf_stage < 3, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_3;
-  ac_fft_dif_r2p2_sdf_stage < 2, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_2;
-  ac_fft_dif_r2p2_sdf_stage < 1, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_1;
-  ac_fft_dif_r2p2_sdf_stage < 0, MEMORY_THRESHOLD, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_0;
+  ac_fft_dif_r2p2_sdf_stage <11, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_11;
+  ac_fft_dif_r2p2_sdf_stage <10, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_10;
+  ac_fft_dif_r2p2_sdf_stage < 9, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_9;
+  ac_fft_dif_r2p2_sdf_stage < 8, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_8;
+  ac_fft_dif_r2p2_sdf_stage < 7, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_7;
+  ac_fft_dif_r2p2_sdf_stage < 6, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_6;
+  ac_fft_dif_r2p2_sdf_stage < 5, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_5;
+  ac_fft_dif_r2p2_sdf_stage < 4, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_4;
+  ac_fft_dif_r2p2_sdf_stage < 3, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_3;
+  ac_fft_dif_r2p2_sdf_stage < 2, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_2;
+  ac_fft_dif_r2p2_sdf_stage < 1, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_1;
+  ac_fft_dif_r2p2_sdf_stage < 0, MEM_TH, dif_complex, dif_complex_round, dif_complex_round_ext, dif_comp_mul, comp_tw, fix_point_tw> stage_0;
 };
 
 //==================================================================================
@@ -454,28 +454,19 @@ private:
 // Note: coverAssert() will be enabled if either macro COVER_ON/ASSERT_ON is defined
 //----------------------------------------------------------------------------------
 
-template<unsigned N_FFT, int MEMORY_THRESHOLD, int TWID_PREC, int DIF_D0_P, int DIF_D0_I>
+template<unsigned N_FFT, int MEM_TH, int TWID_PREC, int DIF_D0_P, int DIF_D0_I>
 class ac_fft_dif_r2p2_sdf
 {
-private:
+public:
   // Typedefs for public function args declared first, to avoid compile-time errors.
   typedef ac_fixed <DIF_D0_P, DIF_D0_I, true> dif_fx0;
   typedef ac_complex <dif_fx0>                dif_cplex0;
-
-public:
-  //----------------------------------------------------------------------
-  // Constructor
-  //
-  ac_fft_dif_r2p2_sdf() {
-    // Reset Action Here:
-    write_out = false;
-    b = 0;
-  }
 
   //----------------------------------------------------------------------
   // Member Function: run
   // Description: the top-level interface to the FFT.
   //
+#pragma hls_pipeline_init_interval 1
 #pragma hls_design interface
   void CCS_BLOCK(run)(ac_channel < dif_cplex0 > &x1, ac_channel < dif_cplex0 > &y1) {
     coverAssert();
@@ -494,6 +485,15 @@ public:
       b = y;
     }
     write_out = true;
+  }
+
+  //----------------------------------------------------------------------
+  // Constructor
+  //
+  ac_fft_dif_r2p2_sdf() {
+    // Reset Action Here:
+    write_out = false;
+    b = 0;
   }
   
   //----------------------------------------------------------------------
@@ -517,7 +517,7 @@ public:
 private:
   bool             write_out;
   dif_cplex0       b;
-  ac_fft_dif_r2p2_sdf_core <N_FFT, MEMORY_THRESHOLD, TWID_PREC, DIF_D0_P, DIF_D0_I>  fft;
+  ac_fft_dif_r2p2_sdf_core <N_FFT, MEM_TH, TWID_PREC, DIF_D0_P, DIF_D0_I>  fft;
 };
 
 #endif

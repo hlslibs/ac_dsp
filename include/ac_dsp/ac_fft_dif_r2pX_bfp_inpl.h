@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -172,7 +172,7 @@ using namespace std;
 // Description: templatized class for a butterfly
 //-------------------------------------------------------------------------
 
-template < int N_FFT, int RADX, int DIF_D_P, int DIF_D_I, class fix_p, class com_p, class complex_round, class rnd_ext, class com_rnd_ext, class com_mult, class com_tw >
+template < unsigned N_FFT, int RADX, int DIF_D_P, int DIF_D_I, class fix_p, class com_p, class complex_round, class rnd_ext, class com_rnd_ext, class com_mult, class com_tw >
 class ac_fft_dif_r2pX_bfp_inpl_butterfly
 {
 public:
@@ -363,7 +363,7 @@ private:
 // Description: Core class for FFT computation.
 //-------------------------------------------------------------------------
 
-template < int N_FFT, int RADIX, int ORDER, int TWID_PREC, int DIF_D_P, int DIF_D_I >
+template < unsigned N_FFT, int RADIX, int ORDER, int TWID_PREC, int DIF_D_P, int DIF_D_I >
 class ac_fft_dif_r2pX_bfp_inpl_core
 {
 private:
@@ -633,21 +633,13 @@ private:
 // HLS Interface: run()
 //----------------------------------------------------------------------------------
 
-template < int N_FFT, int RADIX, int ORDER, int TWIDDLE_PREC, int DIF_D_P, int DIF_D_I, class out_str >
+template < unsigned N_FFT, int RADIX, int ORDER, int TWID_PREC, int DIF_D_P, int DIF_D_I, class out_str >
 class ac_fft_dif_r2pX_bfp_inpl
 {
-private:
+public:
   // Typedefs for public function args declared first, to avoid compile-time errors.
   typedef ac_fixed < DIF_D_P, DIF_D_I, true > dif_fxp_data;
   typedef ac_complex < dif_fxp_data > dif_input, dif_output;
-
-public:
-  //---------------------------------------------------------------------------------------------------------------
-  // Constructor
-  //
-  ac_fft_dif_r2pX_bfp_inpl () {
-    ac::init_array < AC_VAL_DC > (&bank[0][0], N_FFT);
-  }
 
   //---------------------------------------------------------------------------------------------------------------
   // Member Function: run
@@ -745,6 +737,13 @@ public:
   }
 
   //---------------------------------------------------------------------------------------------------------------
+  // Constructor
+  //
+  ac_fft_dif_r2pX_bfp_inpl () {
+    ac::init_array < AC_VAL_DC > (&bank[0][0], N_FFT);
+  }
+
+  //---------------------------------------------------------------------------------------------------------------
   // Member Function: coverAssert
   // Description: Helps to validate if object of this class created in user code has right set of parameters
   // defined for it. Code will assert during run time if incorrect template values are used.
@@ -754,17 +753,17 @@ public:
 #ifdef ASSERT_ON
     static_assert(N_FFT == 2   || N_FFT == 4   || N_FFT == 8    || N_FFT == 16   || N_FFT == 32   || N_FFT == 64 || N_FFT == 128 ||
                   N_FFT == 256 || N_FFT == 512 || N_FFT == 1024 || N_FFT == 2048 || N_FFT == 4096, "N_FFT is not a power of two");
-    static_assert(TWIDDLE_PREC <= 32, "Twiddle bitwidth greater than 32");
-    static_assert(TWIDDLE_PREC >= 2,  "Twiddle bitwidth lesser than 2");
+    static_assert(TWID_PREC <= 32, "Twiddle bitwidth greater than 32");
+    static_assert(TWID_PREC >= 2,  "Twiddle bitwidth lesser than 2");
     static_assert(DIF_D_P >= DIF_D_I,  "Stage integer width lesser than bitwidth");
 #endif
 #ifdef COVER_ON
-    cover (TWIDDLE_PREC <= 5);
+    cover (TWID_PREC <= 5);
 #endif
   }
   
 private:
-  ac_fft_dif_r2pX_bfp_inpl_core < N_FFT, RADIX, ORDER, TWIDDLE_PREC, DIF_D_P, DIF_D_I > fft;
+  ac_fft_dif_r2pX_bfp_inpl_core < N_FFT, RADIX, ORDER, TWID_PREC, DIF_D_P, DIF_D_I > fft;
   dif_input bank[RADIX][N_FFT / RADIX];
 
   //---------------------------------------------------------------------------------------------------------------
@@ -785,4 +784,3 @@ private:
 };
 
 #endif
-

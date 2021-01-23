@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -99,6 +99,14 @@
 //  Dynamic Behaviour: The FFT Architecture is Dynamic in No of FFT Points and Instances
 //  to be Calculated in one call.
 //
+// Revision History:
+//    3.3.0  - Added CDesignChecker waivers/fixes for ac_dsp IP blocks.
+//             Changes made in general:
+//               - CNS violations were waived away.
+//               - CCC violations were either waived away or fixed by changing signedness of loop iterator.
+//               - FXD violations were fixed by changing integer literals to floating point literals.
+//               - ABR violations were waived away.
+//
 //*********************************************************************************************************
 
 #ifndef _INCLUDED_AC_DIF_R2PX_DYN_INPL_H_
@@ -179,7 +187,7 @@ private:
 #include "twiddlesR_64bits.h"
 
 #pragma unroll yes
-    RADIX_STAGE_LOOP: for (ac_int < logRad, 0 > Rstage = logRad - 1; Rstage >= 0; Rstage--) {
+    RADIX_STAGE_LOOP: for (int Rstage = logRad - 1; Rstage >= 0; Rstage--) {
       // Radix stage
       com_rnd_ext a[RADX];
 
@@ -195,6 +203,7 @@ private:
 
         twid_add = ((1 << (logRad - 1)) - 1) & (B_count << (logRad - Rstage - 1));
 
+#pragma hls_waive CNS
         switch (RADX) {
           case 2:
             Rw = Rtw0[twid_add];
@@ -249,8 +258,8 @@ private:
         if ((((stage_n != 0)) || (!(Rstage >= (logRad - RADIX_R_dyn))) || (RADIX_R_dyn == 0))) {
           temp_tw = Rw;
         } else {
-          temp_tw.r() = 1;
-          temp_tw.i() = 0;
+          temp_tw.r() = 1.0;
+          temp_tw.i() = 0.0;
         }
         x[addrs2] = (com_rnd_ext) (temp_x * temp_tw);
         x[addrs1] = (com_rnd_ext) (x[addrs1]);
@@ -268,8 +277,6 @@ private:
         }
         x[rad_itr] = temp;
       }
-
-      if (Rstage == 0) { break; }
     }
 
 #pragma unroll yes
@@ -428,6 +435,7 @@ public:
     //
     //                     }
 
+#pragma hls_pipeline_init_interval 1
     FFT_STAGE_LOOP: for (int iterator = 0; iterator < Nstage; iterator++) {
       i--;
       logRxStage -= logRad;
@@ -460,6 +468,7 @@ public:
       //
       //                     }
 
+#pragma hls_waive CCC
 #pragma hls_pipeline_init_interval 1
       BUTTERFLY_CALL_LOOP: for (ac_int < logN_a - logRad, 0 > uni_counter1 = 0; uni_counter1 < (1 << (logN_a - logRad)); uni_counter1++) {
         ac_int < logN_a - logRad, 0 > uni_counter_dyn_shifted;
@@ -521,6 +530,7 @@ public:
 
 #pragma unroll yes
         DATA_FETCH_FROM_BANKS: for (int mn = 0; mn < RADIX; mn++) {
+#pragma hls_waive ABR
           int bank_add_fet = mn ^ (bank_add_gen.template slc < logRad > (logRxStage));
           fet_id_data = id_bank[mn] & (((N_FFT / RADIX) - 1) >> dyn_red);
           fet_id_data = (fet_id_data | (box << (logN_a - logRad - dyn_red))) & ((N_FFT / RADIX) - 1);
@@ -556,9 +566,9 @@ public:
             }
 
           }
-          cx_tType J = comx_twiddle (0, 1);
+          cx_tType J = comx_twiddle (0.0, 1.0);
 
-          tw_vac[0] = comx_twiddle (1, 0);
+          tw_vac[0] = comx_twiddle (1.0, 0.0);
           ac_int < logN, 0 > logNminone = logN_a - 1;
 
           //  Loop Info:TWIDDLE_VAC_GEN
@@ -582,6 +592,7 @@ public:
             ac_int < logN, false > t;
             n = n_vac[tw_itr] & (N_FFT - 1);
             t = (1 & ((n << 2) >> (logNminone))) ? (ac_int < (logN) + 1, false >) ((((1 << (logNminone)) >> 2)) - (n & ((((1 << (logNminone)) >> 2)) - 1))) : (ac_int < (logN) + 1, false >) (n & ((((1 << (logNminone)) >> 2)) - 1));
+#pragma hls_waive CNS
             switch (logN_a) {
               case 1:
                 twd = twiddle_0[t];
@@ -625,6 +636,7 @@ public:
             }
             tw.r() = ((1 & ((n << 2) >> (logNminone))) | (1 & ((n << 1) >> (logNminone)))) ? (tType) (-twd.r()) : (tType) (twd.r());
             tw.i() = ((!(1 & ((n << 2) >> (logNminone)))) | (1 & ((n << 1) >> (logNminone)))) ? (tType) (twd.i()) : (tType) (-twd.i());
+#pragma hls_waive CCC
             tw = ((1 & ((n << 2) >> (logNminone))) ^ (1 & ((n << 1) >> (logNminone)))) && ((logNminone) >= 2) ? (cx_tType) (J * tw.conj ()) : (cx_tType) tw;
             tw = n[logNminone] ? (cx_tType) (-tw) : (cx_tType) (tw);
             tw_vac[tw_itr] = tw;
@@ -651,6 +663,7 @@ public:
         PUTTING_DATA_IN_BANKS: for (int amn = 0; amn < RADIX; amn++) {
           cur_id_bank = id_bank[amn] & (((N_FFT / RADIX) - 1) >> dyn_red);
           cur_id_bank = (cur_id_bank | box << (logN_a - logRad - dyn_red)) & ((N_FFT / RADIX) - 1);
+#pragma hls_waive ABR
           int data_add = amn ^ (bank_add_gen.template slc < logRad > (i > 0 ? ((int) (logRxStage) - logRad) : logN));
           bank[amn][cur_id_bank] = data_out[data_add];
         }
@@ -701,27 +714,18 @@ private:
 // HLS Interface: run()
 //----------------------------------------------------------------------------------
 
-template < unsigned N_FFT, int RADIX, int ORDER, int TWIDDLE_PREC, int DIF_D_P, int DIF_D_I >
+template < unsigned N_FFT, int RADIX, int ORDER, int TWID_PREC, int DIF_D_P, int DIF_D_I >
 class ac_fft_dif_r2pX_dyn_inpl
 {
-private:
+public:
   enum {
     INS_W = ac::log2_ceil<N_FFT>::val - ac::log2_ceil<RADIX>::val,
     DYN_W = ac::log2_ceil<INS_W + 1>::val
   };
-
   typedef ac_fixed < DIF_D_P, DIF_D_I, true > dif_fxp_data;
   typedef ac_complex < dif_fxp_data > dif_input, dif_output;
-  typedef ac_int<INS_W, 0> ins_port;
-  typedef ac_int<DYN_W, 0> dyn_port;
-
-public:
-  //-------------------------------------------------------------------------
-  // Constructor
-  //
-  ac_fft_dif_r2pX_dyn_inpl () {
-    ac::init_array < AC_VAL_DC > (&bank[0][0], N_FFT);
-  }
+  typedef ac_int<INS_W, false> ins_port;
+  typedef ac_int<DYN_W, false> dyn_port;
 
   //---------------------------------------------------------------------------------------------------------------------------------------
   // Member Function: run
@@ -774,6 +778,7 @@ public:
         // Computing Dynamic characteristic of FFT
         ac_int < logN + 1, false > N_FFT_dyn = N_FFT >> dyn_red;
         ac_int < logN, 0 > logN_dyn = logN - dyn_red;
+#pragma hls_waive CCC
         ac_int < logN, 0 > Nstage_dyn = Nstage - (dyn_red >= mixR) - (dyn_red >= (mixR + logRad)) - (dyn_red >= (mixR + 2 * logRad)) - (dyn_red >= (mixR + 3 * logRad)) - (dyn_red >= (mixR + 4 * logRad)) - (dyn_red >= (mixR + 5 * logRad)) - (dyn_red >= (mixR + 6 * logRad)) - (dyn_red >= (mixR + 7 * logRad)) - (dyn_red >= (mixR + 8 * logRad)) - (dyn_red >= (mixR + 9 * logRad)) - (dyn_red >= (mixR + 10 * logRad)) - (dyn_red >= (mixR + 11 * logRad)) - (dyn_red >= (mixR + 12 * logRad));
         ac_int < logRad, 0 > RADIX_R_dyn = Nstage_dyn * logRad - logN_dyn;
 
@@ -824,6 +829,7 @@ public:
 #pragma hls_pipeline_init_interval 1
         INPUT_DYN_ADDR_BLOCK_LOOP: for (ac_int < logN + 1, false > blk = 0; blk < N_FFT; blk++) {
           ac_int < logRad, 0 > bank_temp, bank_add;
+#pragma hls_waive ABR
           bank_temp = blk.template slc < logRad > (logN - logRad - dyn_red);
           bank_add = shiftcr(bank_temp, RADIX_R_dyn);
           bank[bank_add][(blk & j_mask) | ((blk >> logRad) & (~j_mask))] = inst.read ();
@@ -880,6 +886,7 @@ public:
         //                           }
         //
 
+#pragma hls_waive CNS
         if (ORDER == 1) {
 #pragma hls_pipeline_init_interval 1
           OUTPUT_DYN_NATURAL_ADDR_BLOCK_LOOP: for (ac_int < logN + 1, false > blk = 0; blk < N_FFT; blk++) {
@@ -943,7 +950,9 @@ public:
         //
         //                           }
 
-        else if (ORDER == 0) {
+        else
+#pragma hls_waive CNS
+        if (ORDER == 0) {
 #pragma hls_pipeline_init_interval 1
           OUTPUT_DYN_BITREVERSE_ADDR_BLOCK_LOOP: for (ac_int < logN + 1, false > blk = 0; blk < N_FFT; blk++) {
             ac_int < logN + 1, false > i = ((blk >> logRad) & j_mask);
@@ -956,6 +965,7 @@ public:
             mem_add = ((fix_zero_wire_wdth) & (i ^ out_add));
             mem_add = mem_add | blk_r;
             bank_add = m_no_msb;
+#pragma hls_waive ABR
             outst.write (bank[bank_add][mem_add]);
 
             if ((blk & ((1 << (logN - dyn_red)) - 1)) == ((N_FFT - 1) >> dyn_red)) {
@@ -971,6 +981,19 @@ public:
   }
 
   //-------------------------------------------------------------------------
+  // Constructor
+  //
+  ac_fft_dif_r2pX_dyn_inpl () {
+#pragma hls_unroll yes
+    INIT_BANK_ARR_ROW: for (int i = 0; i < RADIX; i++) {
+      INIT_BANK_ARR_COL: for (int j = 0; j < N_FFT/RADIX; j++) {
+        bank[i][j].r() = 0.0;
+        bank[i][j].i() = 0.0;
+      }
+    }
+  }  
+
+  //-------------------------------------------------------------------------
   // Member Function: coverAssert
   // Description: used for basic template assert condition. This helps to 
   // validate if object of this class created by the user has right set of
@@ -982,17 +1005,17 @@ public:
     static_assert(N_FFT == 2   || N_FFT == 4   || N_FFT == 8    || N_FFT == 16   || N_FFT == 32   || N_FFT == 64 || N_FFT == 128 ||
                   N_FFT == 256 || N_FFT == 512 || N_FFT == 1024 || N_FFT == 2048 || N_FFT == 4096, "N_FFT is not a power of two");
     static_assert(RADIX == 2 || RADIX == 4 || RADIX == 8 || RADIX == 16 || RADIX == 32 || RADIX == 64 || RADIX == 128, "Radix Value not supported");
-    static_assert(TWIDDLE_PREC <= 32, "Twiddle bitwidth greater than 32");
-    static_assert(TWIDDLE_PREC >= 2,  "Twiddle bitwidth lesser than 2");
+    static_assert(TWID_PREC <= 32, "Twiddle bitwidth greater than 32");
+    static_assert(TWID_PREC >= 2,  "Twiddle bitwidth lesser than 2");
     static_assert(DIF_D_P >= DIF_D_I,  "Stage integer width lesser than bitwidth");
 #endif
 #ifdef COVER_ON
-    cover (TWIDDLE_PREC <= 5);
+    cover (TWID_PREC <= 5);
 #endif
   }
 
 private:
-  ac_fft_dif_r2pX_dyn_inpl_core < N_FFT, RADIX, ORDER, TWIDDLE_PREC, DIF_D_P, DIF_D_I > fft;
+  ac_fft_dif_r2pX_dyn_inpl_core < N_FFT, RADIX, ORDER, TWID_PREC, DIF_D_P, DIF_D_I > fft;
   // The below line instantiates RAM inside the design. RAM must mapped to a dual port Memory.
   // RAM will be spliced into n dual-port memories where n = RADIX
   // For Example:

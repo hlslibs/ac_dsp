@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -87,7 +87,9 @@ private: // Data
 public: // Functions
   // Constructor
   ac_intg_dump_core() {
-    ac::init_array < AC_VAL_0 > (temp, CHN);
+    for (int i = 0; i < CHN; i++) {
+      temp[i] = 0.0; // Temporary workaround to avoid using ac::init_array and triggering a CDesignChecker error.
+    }
   }
 
 //------------------------------------------------------------------------------------------------------
@@ -97,7 +99,7 @@ public: // Functions
     temp[i] = temp[i] + data_in;
     if (j == n_sample) {
       data_out = temp[i];
-      temp[i] = 0;
+      temp[i] = 0.0;
       flag = true;
     }
   }

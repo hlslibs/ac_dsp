@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -146,7 +146,7 @@ public: // Functions
 // Member Function: firProgCoeffsShiftReg()
 // Description: firProgCoeffsShiftReg() implements a non symmetric FIR filter with shift register
 
-  void firProgCoeffsShiftReg(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
+  void firProgCoeffsShiftReg(IN_TYPE &data_in, const COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
     firShiftReg(data_in);
     MAC:
@@ -160,7 +160,7 @@ public: // Functions
 // Member Function: firProgCoeffsRotateShift()
 // Description: firProgCoeffsRotateShift() implements a Rotational shift based implementation
 
-  void firProgCoeffsRotateShift(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
+  void firProgCoeffsRotateShift(IN_TYPE &data_in, const COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
     IN_TYPE temp_rotate;
     MAC:
@@ -180,7 +180,7 @@ public: // Functions
 // Member Function: firProgCoeffsCircularBuff()
 // Description: firProgCoeffsCircularBuff() implements a Circular Buffer based implementation
 
-  void firProgCoeffsCircularBuff(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
+  void firProgCoeffsCircularBuff(IN_TYPE &data_in, const COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
     MAC:
     for (int i = 0; i <= (N_TAPS - 1); i++) {
@@ -197,7 +197,7 @@ public: // Functions
 // Description: firProgCoeffsShiftRegSymmetricEvenTaps() implements a symmetric filter with even number of Taps
 // and shift register based implementation
 
-  void firProgCoeffsShiftRegSymmetricEvenTaps(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
+  void firProgCoeffsShiftRegSymmetricEvenTaps(IN_TYPE &data_in, const COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
     firShiftReg(data_in);
     MAC:
@@ -212,7 +212,7 @@ public: // Functions
 // Description: firProgCoeffsShiftRegSymmetricOddTaps() implements a symmetric filter with odd number of Taps
 // and shift register based implementation
 
-  void firProgCoeffsShiftRegSymmetricOddTaps(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
+  void firProgCoeffsShiftRegSymmetricOddTaps(IN_TYPE &data_in, const COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE acc = 0;
     ACC_TYPE fold = 0;
     firShiftReg(data_in);
@@ -232,7 +232,7 @@ public: // Functions
 // Member Function: firProgCoeffsTransposed()
 // Description: firProgCoeffsTransposed() implements the transposed form of the filter
 
-  void firProgCoeffsTransposed(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
+  void firProgCoeffsTransposed(IN_TYPE &data_in, const COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE temp = 0;
     IN_TYPE in = data_in;
 #pragma unroll yes
@@ -266,14 +266,9 @@ class ac_fir_prog_coeffs
 private: // Data
   fir_prog_coeffs_core < IN_TYPE, OUT_TYPE, COEFF_TYPE, ACC_TYPE, N_TAPS > filter;
 
-  // Internal array that stores coefficients data
-  COEFF_TYPE coeffs[N_TAPS];
-
 public: 
   // Constructor
-  ac_fir_prog_coeffs() {
-    ac::init_array < AC_VAL_DC > (coeffs, N_TAPS);
-  }
+  ac_fir_prog_coeffs() { }
 
 //------------------------------------------------------------------------------------------------------
 // Member Function: run()
@@ -281,13 +276,9 @@ public:
 
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design interface
-  void CCS_BLOCK(run)(ac_channel < IN_TYPE > &data_in, ac_channel < COEFF_TYPE > &coeffs_ch, ac_channel < OUT_TYPE > &data_out) {
+  void CCS_BLOCK(run)(ac_channel<IN_TYPE> &data_in, ac_channel<OUT_TYPE> &data_out, const COEFF_TYPE coeffs[N_TAPS]) {
     IN_TYPE core_in;
     OUT_TYPE core_out;
-
-    if (coeffs_ch.available(N_TAPS)) {
-      for (int i = 0; i < N_TAPS; i++) { coeffs[i] = coeffs_ch.read(); }
-    }
 
     if (data_in.available(1)) {
       core_in = data_in.read();
@@ -315,4 +306,3 @@ public:
 };
 
 #endif
-

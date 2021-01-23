@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -84,7 +84,7 @@
 #define _INCLUDED_AC_CIC_INTR_FULL_H_
 
 #include <ac_channel.h>
-#include <ac_dsp/ac_cic_full_core.h>      /* Core functionality for the filter, common for C++ and System C */
+#include <ac_dsp/ac_cic_full_core.h> // Core functionality for the filter, common for C++ and System C
 
 #include <mc_scverify.h>
 
@@ -195,7 +195,7 @@ private:
 #pragma hls_pipeline_init_interval 1
 #pragma hls_design
   void intrIntg(ac_channel < INT_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out) {
-    INT_TYPE data_in_t, data_out_t;
+    INT_TYPE data_in_t = 0.0, data_out_t; // data_in_t initialized to prevent UMR violations later.
     OUT_TYPE data_out_final;
 
 #ifndef __SYNTHESIS__

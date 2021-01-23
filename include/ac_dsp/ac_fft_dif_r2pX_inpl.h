@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -90,6 +90,14 @@
 //  Currently, the block only accepts signed ac_complex<ac_fixed> inputs and outputs which use AC_TRN
 //  and AC_WRAP as their rounding and overflow modes.
 //
+// Revision History:
+//    3.3.0  - Added CDesignChecker waivers/fixes for ac_dsp IP blocks.
+//             Changes made in general:
+//               - CNS violations were waived away.
+//               - CCC violations were either waived away or, less commonly, fixed. Fixes consisted of changing unsigned loop iterators
+//               - FXD violations were fixed by changing integer literals to floating point literals.
+//               - MXS violations were fixed by converting unsigned ac_ints to int values and then adding them to another int variable.
+//
 //*********************************************************************************************************
 
 #ifndef _INCLUDED_AC_FFT_DIF_R2PX_INPL_H_
@@ -171,7 +179,7 @@ private:
 #include "twiddlesR_64bits.h"
 
 #pragma unroll yes
-    RADIX_STAGE_LOOP: for (ac_int < logRad, 0 > Rstage = logRad - 1; Rstage >= 0; Rstage--) {
+    RADIX_STAGE_LOOP: for (int Rstage = logRad - 1; Rstage >= 0; Rstage--) {
       com_rnd_ext a[RADX];
 
 #pragma unroll yes
@@ -185,6 +193,7 @@ private:
 
         twid_add = ((1 << (logRad - 1)) - 1) & (B_count << (logRad - Rstage - 1));
 
+#pragma hls_waive CNS
         switch (RADX) {
           case 2:
             Rw = Rtw0[twid_add];
@@ -238,8 +247,8 @@ private:
         if ((((stage_n != 0)) || (!(Rstage >= mixR)) || (mixR == 0))) {
           temp_tw = Rw;
         } else {
-          temp_tw.r() = 1;
-          temp_tw.i() = 0;
+          temp_tw.r() = 1.0;
+          temp_tw.i() = 0.0;
         }
         x[addrs2] = (complex_round) (temp_x * temp_tw);
         x[addrs1] = (complex_round) (x[addrs1]);
@@ -260,9 +269,6 @@ private:
 
         x[rad_itr] = temp;
       }
-
-      if (Rstage == 0)
-      { break; }
     }
   }
 
@@ -366,7 +372,7 @@ public:
 
     ac_fft_dif_r2pX_inpl_butterfly < N_FFT, RADIX, dType, cx_dType, cx_dround, cx_b_dround, cx_mType, cx_tType > btrfly;
 
-#pragma hls_pipeline_init_interval 1
+#pragma hls_pipeline_init_interval 3
     STAGE_LOOP: for (int i = Nstage - 1; i >= 0; i--) {
       bank_add_gen = 0;
       n2 = n1;
@@ -382,16 +388,18 @@ public:
             xadd = 0;
             m_no_msb = m;
 #pragma unroll yes
-            BANK_ADD_GEN_NEST: for (int slc_j = logN - logRad; slc_j >= (i * logRad); slc_j = (slc_j - logRad)) {
-              xadd.set_slc (slc_j, m_no_msb);
+            BANK_ADD_GEN_NEST: for (int slc_j = logN - logRad; slc_j >= 0; slc_j -= logRad) {
+              if (slc_j >= (i * logRad)) {
+                xadd.set_slc(slc_j, m_no_msb);
+              }
             }
             id_bank[m] = fix_zero_wire_wdth & (bank_add_gen ^ xadd);
           }
 
 #pragma unroll yes
           DATA_FETCH_FROM_BANKS: for (int mn = 0; mn < RADIX; mn++) {
+#pragma hls_waive ABR
             int bank_add_fet = mn ^ (bank_add_gen.template slc < logRad > (i * logRad));
-
             fet_id_data = id_bank[mn] & ((N_FFT / RADIX) - 1);
             data[bank_add_fet] = bank[mn][fet_id_data];
           }
@@ -409,9 +417,9 @@ public:
             }
 
           }
-          cx_tType J = comx_twiddle (0, 1);
+          cx_tType J = comx_twiddle (0.0, 1.0);
 
-          tw_vac[0] = comx_twiddle (1, 0);
+          tw_vac[0] = comx_twiddle (1.0, 0.0);
 
 #pragma unroll yes
           TWIDDLE_VAC_GEN: for (ac_int < logRad + 1, 0 > tw_itr = 1; tw_itr < RADIX; tw_itr++) {
@@ -419,6 +427,7 @@ public:
             n = n_vac[tw_itr];
             t = (1 & ((n << 2) >> (logN_a - 1))) ? (ac_int < (logN_a - 1) + 1, false >) ((((1 << (logN_a - 1)) >> 2)) - (n & ((((1 << (logN_a - 1)) >> 2)) - 1))) : (ac_int < (logN_a - 1) + 1, false >) (n & ((((1 << (logN_a - 1)) >> 2)) - 1));
 
+#pragma hls_waive CNS
             switch (logN_a) {
               case 1:
                 twd = twiddle_0[t];
@@ -474,24 +483,22 @@ public:
 #pragma unroll yes
           PUTTING_DATA_IN_BANKS: for (int amn = 0; amn < RADIX; amn++) {
             cur_id_bank = id_bank[amn] & ((N_FFT / RADIX) - 1);
+#pragma hls_waive ABR
             int data_add = amn ^ (bank_add_gen.template slc < logRad > (i > 0 ? (i - 1) * logRad : logN));
-
             bank[amn][cur_id_bank] = data[data_add];
           }
-          k += n2;
+          k += n2.to_int();
           bank_add_gen += (1 << ((i) * logRad));
 
           if ((bank_add_gen >= N_FFT / RADIX)) {
             bank_add_gen = bank_add_gen & ((N_FFT / RADIX) - 1);
             bank_add_gen += 1;
           }
-
           if (k >= N_FFT - 1)
           { break; }
         }
         if (j == n1 - 1)
         { break; }
-
       }
       idx <<= logRad;
     }
@@ -515,21 +522,13 @@ private:
 // HLS Interface: run()
 //----------------------------------------------------------------------------------
 
-template < unsigned N_FFT, int RADIX, int ORDER, int TWIDDLE_PREC, int DIF_D_P, int DIF_D_I >
+template < unsigned N_FFT, int RADIX, int ORDER, int TWID_PREC, int DIF_D_P, int DIF_D_I >
 class ac_fft_dif_r2pX_inpl
 {
-private:
+public:
   // Typedefs for public function args declared first, to avoid compile-time errors.
   typedef ac_fixed < DIF_D_P, DIF_D_I, true > dif_fxp_data;
   typedef ac_complex < dif_fxp_data > dif_input, dif_output;
-  
-public:
-  //-------------------------------------------------------------------------
-  // Constructor
-  //
-  ac_fft_dif_r2pX_inpl () {
-    ac::init_array < AC_VAL_DC > (&bank[0][0], N_FFT);
-  }
 
   //----------------------------------------------------------------------
   // Member Function: run
@@ -561,6 +560,7 @@ public:
     ac_int < logN - logRad + 1, 0 > mem_intr, mem_add;
     ac_int < logRad, 0 > m_no_msb = 0, bank_add;
 
+#pragma hls_waive CNS
     if (ORDER == 1) {
       // This loop Generates Addresses to Fetch Output in Natural Order
 #pragma hls_pipeline_init_interval 1
@@ -599,6 +599,13 @@ public:
   }
 
   //-------------------------------------------------------------------------
+  // Constructor
+  //
+  ac_fft_dif_r2pX_inpl () {
+    ac::init_array < AC_VAL_DC > (&bank[0][0], N_FFT);
+  }
+
+  //-------------------------------------------------------------------------
   // Member Function: coverAssert
   // Description: used for basic template assert condition. This helps to 
   // validate if object of this class created by the user has right set of
@@ -610,17 +617,17 @@ public:
     static_assert(N_FFT == 2   || N_FFT == 4   || N_FFT == 8    || N_FFT == 16   || N_FFT == 32   || N_FFT == 64 || N_FFT == 128 ||
                   N_FFT == 256 || N_FFT == 512 || N_FFT == 1024 || N_FFT == 2048 || N_FFT == 4096, "N_FFT is not a power of two");
     static_assert(RADIX == 2 || RADIX == 4 || RADIX == 8 || RADIX == 16 || RADIX == 32 || RADIX == 64 || RADIX == 128, "Radix Value not supported");
-    static_assert(TWIDDLE_PREC <= 32, "Twiddle bitwidth greater than 32");
-    static_assert(TWIDDLE_PREC >= 2,  "Twiddle bitwidth lesser than 2");
+    static_assert(TWID_PREC <= 32, "Twiddle bitwidth greater than 32");
+    static_assert(TWID_PREC >= 2,  "Twiddle bitwidth lesser than 2");
     static_assert(DIF_D_P >= DIF_D_I,  "Stage integer width lesser than bitwidth");
 #endif
 #ifdef COVER_ON
-    cover (TWIDDLE_PREC <= 5);
+    cover (TWID_PREC <= 5);
 #endif
   }
   
 private:
-  ac_fft_dif_r2pX_inpl_core < N_FFT, RADIX, ORDER, TWIDDLE_PREC, DIF_D_P, DIF_D_I > fft;
+  ac_fft_dif_r2pX_inpl_core < N_FFT, RADIX, ORDER, TWID_PREC, DIF_D_P, DIF_D_I > fft;
   dif_input bank[RADIX][N_FFT / RADIX];
 
   //-------------------------------------------------------------------------

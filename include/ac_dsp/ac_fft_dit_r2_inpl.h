@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -88,6 +88,14 @@
 //  in a compile error.
 //  Currently, the block only accepts signed ac_complex<ac_fixed> inputs and outputs which use AC_TRN
 //  and AC_WRAP as their rounding and overflow modes.
+//
+// Revision History:
+//    3.3.0  - Added CDesignChecker waivers/fixes for ac_dsp IP blocks.
+//             Changes made in general:
+//               - CNS violations were waived away.
+//               - CCC violations were either waived away or, less commonly, fixed. Fixes consisted of changing unsigned loop iterators
+//               - FXD violations were fixed by changing integer literals to floating point literals.
+//               - MXS violations were fixed by converting unsigned ac_ints to int values and then adding them to another int variable.
 //
 //*********************************************************************************************************
 
@@ -244,12 +252,13 @@ public:
 
           ac_int < (FFT_STAGES - 1) + 2, false > n;
           n = (j * idx);
-          cx_tType J = comx_twiddle(0, 1);
+          cx_tType J = comx_twiddle(0.0, 1.0);
           // Extraction of twiddle value from 1/8 Cycle of Complex exponential
           ac_int < (FFT_STAGES - 1) + 1, false > t;
           t = (1 & ((n << 2) >> (FFT_STAGES - 1))) ? (ac_int < (FFT_STAGES - 1) + 1, false >) ((((1 << (FFT_STAGES - 1)) >> 2)) - (n & ((((1 << (FFT_STAGES - 1)) >> 2)) - 1))) : (ac_int < (FFT_STAGES - 1) + 1, false >) (n & ((((1 << (FFT_STAGES - 1)) >> 2)) - 1));
 
           // Twiddle ROM selection
+#pragma hls_waive CNS
           switch (FFT_STAGES) {
             case 1:
               twd = twiddle_0[t];
@@ -299,7 +308,7 @@ public:
           bank_2[id_bank_2] = data_2;
           bank_1[id_bank_1] = data_1;
 
-          k += n2;
+          k += n2.to_int();
 
           id_bank_1 += (1 << i);
 
@@ -350,42 +359,13 @@ private:
 // HLS Interface: run()
 //----------------------------------------------------------------------------------
 
-template < unsigned N_FFT, int TWIDDLE_PREC, int DIT_D_P, int DIT_D_I >
+template < unsigned N_FFT, int TWID_PREC, int DIT_D_P, int DIT_D_I >
 class ac_fft_dit_r2_inpl
 {
-private:
+public:
   // Typedefs for public function args declared first, to avoid compile-time errors.
   typedef ac_fixed < DIT_D_P, DIT_D_I, true > dit_fxp_data;
   typedef ac_complex < dit_fxp_data > dit_input, dit_output;
-
-public:
-  //-------------------------------------------------------------------------
-  // Constructor
-  //
-  ac_fft_dit_r2_inpl() {
-    ac::init_array<AC_VAL_DC>(&bank_1[0], N_FFT/2);
-    ac::init_array<AC_VAL_DC>(&bank_2[0], N_FFT/2);
-  }
-
-  //-------------------------------------------------------------------------
-  // Member Function: coverAssert
-  // Description: used for basic template assert condition. This helps to 
-  // validate if object of this class created by the user has right set of
-  // parameters defined for it. Code will assert during compile-time if 
-  // incorrect template values are used.
-  //
-  void coverAssert() {
-#ifdef ASSERT_ON
-    static_assert(N_FFT == 2   || N_FFT == 4   || N_FFT == 8    || N_FFT == 16   || N_FFT == 32   || N_FFT == 64 || N_FFT == 128 ||
-                  N_FFT == 256 || N_FFT == 512 || N_FFT == 1024 || N_FFT == 2048 || N_FFT == 4096, "N_FFT is not a power of two");
-    static_assert(TWIDDLE_PREC <= 32, "Twiddle bitwidth greater than 32");
-    static_assert(TWIDDLE_PREC >= 2,  "Twiddle bitwidth lesser than 2");
-    static_assert(DIT_D_P >= DIT_D_I,  "Stage integer width lesser than bitwidth");
-#endif
-#ifdef COVER_ON
-    cover(TWIDDLE_PREC <= 5);
-#endif
-  }
 
   //-------------------------------------------------------------------------
   // Member Function: run
@@ -418,8 +398,36 @@ public:
     }
   }
 
+  //-------------------------------------------------------------------------
+  // Member Function: coverAssert
+  // Description: used for basic template assert condition. This helps to 
+  // validate if object of this class created by the user has right set of
+  // parameters defined for it. Code will assert during compile-time if 
+  // incorrect template values are used.
+  //
+  void coverAssert() {
+#ifdef ASSERT_ON
+    static_assert(N_FFT == 2   || N_FFT == 4   || N_FFT == 8    || N_FFT == 16   || N_FFT == 32   || N_FFT == 64 || N_FFT == 128 ||
+                  N_FFT == 256 || N_FFT == 512 || N_FFT == 1024 || N_FFT == 2048 || N_FFT == 4096, "N_FFT is not a power of two");
+    static_assert(TWID_PREC <= 32, "Twiddle bitwidth greater than 32");
+    static_assert(TWID_PREC >= 2,  "Twiddle bitwidth lesser than 2");
+    static_assert(DIT_D_P >= DIT_D_I,  "Stage integer width lesser than bitwidth");
+#endif
+#ifdef COVER_ON
+    cover(TWID_PREC <= 5);
+#endif
+  }
+
+  //-------------------------------------------------------------------------
+  // Constructor
+  //
+  ac_fft_dit_r2_inpl() {
+    ac::init_array<AC_VAL_DC>(&bank_1[0], N_FFT/2);
+    ac::init_array<AC_VAL_DC>(&bank_2[0], N_FFT/2);
+  }
+
 private:
-  ac_fft_dit_r2_inpl_core < N_FFT, TWIDDLE_PREC, DIT_D_P, DIT_D_I > fft;
+  ac_fft_dit_r2_inpl_core < N_FFT, TWID_PREC, DIT_D_P, DIT_D_I > fft;
   dit_input bank_1[N_FFT / 2], bank_2[N_FFT / 2];
 };
 

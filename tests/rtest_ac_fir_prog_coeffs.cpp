@@ -5,7 +5,7 @@
 //***********************************************************************************
 
 // To compile and run:
-// $MGC_HOME/bin/c++ -std=c++11 -I$MGC_HOME/shared/include -I$MGC_HOME/shared/pkgs/ac_dsp/include/ac_dsp ac_fir_prog_coeffs_main_tb.cpp -o design
+// $MGC_HOME/bin/c++ -std=c++11 -I$MGC_HOME/shared/include rtest_ac_fir_prog_coeffs.cpp -o design
 // ./design
 
 #include <ac_dsp/ac_fir_prog_coeffs.h>
@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
   ac_channel < OUT_TYPE > output_test;
   ac_fir_prog_coeffs < IN_TYPE, OUT_TYPE, COEFF_TYPE, MAC_TYPE, TAPS, TYPE > filter;
   ac_channel < COEFF_TYPE > coeffs_ch;
-  COEFF_TYPE coeffs_arr_elem;
+  COEFF_TYPE coeffs[TAPS];
   OUT_TYPE output_reference;
   // Enter frequencies of components to be tested as well as sampling frequency, in Hertz.
   double F1 = 25, F2 = 150, Fs = 500;
@@ -70,15 +70,14 @@ int main(int argc, char *argv[])
   // Read coefficients data from the corresponding text file and load to top-level design.
   for (int i = 0; i < TAPS; i++) {
     coeff_fs >> _coeff;
-    coeffs_arr_elem = _coeff;
-    coeffs_ch.write(coeffs_arr_elem);
+    coeffs[i] = _coeff;
   }
 
   // Pass inputs to the top-level design.
   for (int i = 0; i < n_inputs; i++) {
     _input = _input_array[i];
     input.write(_input);
-    filter.run(input, coeffs_ch, output_test);
+    filter.run(input, output_test, coeffs);
   }
 
   double quant_noise_pow = 0, sig_pow = 0;

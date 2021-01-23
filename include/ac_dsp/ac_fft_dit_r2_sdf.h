@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -93,6 +93,13 @@
 //  Currently, the block only accepts signed ac_complex<ac_fixed> inputs and outputs which use AC_TRN
 //  and AC_WRAP as their rounding and overflow modes.
 //
+// Revision History:
+//    3.3.0  - Added CDesignChecker waivers/fixes for ac_dsp IP blocks.
+//             Changes made in general:
+//               - CNS violations were waived away.
+//               - FXD violations were fixed by changing integer literals to floating point literals.
+//               - UMR violation was fixed by using init_array to initialize shift register.
+//
 //*********************************************************************************************************
 
 #ifndef _INCLUDED_AC_FFT_DIT_R2_SDF_H_
@@ -147,7 +154,7 @@ public:
     if (iterator[STAGE]) {
       ac_int < STAGE + 2, false > n;
       n = (iterator) & ((1 << STAGE) - 1);
-      complext J = complext(0, 1);
+      complext J = complext(0.0, 1.0);
 
       ac_int < STAGE + 1, false > t;
       t = (1 & ((n << 2) >> STAGE)) ? (ac_int < STAGE + 1, false >) ((((1 << STAGE) >> 2)) - (n & ((((1 << STAGE) >> 2)) - 1))) : (ac_int < STAGE + 1, false >) (n & ((((1 << STAGE) >> 2)) - 1));
@@ -179,6 +186,7 @@ public:
   //
   ac_fft_dit_r2_sdf_stage() {
     ac::init_array < AC_VAL_DC > (&memory_shift[0], 1 << STAGE);
+    ac::init_array < AC_VAL_DC > (&shift_reg[0], 1 << STAGE);
     // Reset Action here:
     iterator = (1 << STAGE) ^ 1;
     addr = 0;
@@ -285,39 +293,51 @@ public:
     dit_complex temp_11, temp_10, temp_9, temp_8, temp_7, temp_6, temp_5, temp_4, temp_3, temp_2, temp_1, temp_0;
 
     temp_11 =   (dit_complex_round)input;
+#pragma hls_waive CNS
     if (N_FFT >=    2) { stage_11.stageRun(temp_11,  twiddle_0); }
 
     temp_10 = (dit_complex_round)temp_11;
+#pragma hls_waive CNS
     if (N_FFT >=    4) { stage_10.stageRun(temp_10,  twiddle_1); }
 
     temp_9  = (dit_complex_round)temp_10;
+#pragma hls_waive CNS
     if (N_FFT >=    8) {  stage_9.stageRun( temp_9,  twiddle_2); }
 
     temp_8  =  (dit_complex_round)temp_9;
+#pragma hls_waive CNS
     if (N_FFT >=   16) {  stage_8.stageRun( temp_8,  twiddle_3); }
 
     temp_7  =  (dit_complex_round)temp_8;
+#pragma hls_waive CNS
     if (N_FFT >=   32) {  stage_7.stageRun( temp_7,  twiddle_4); }
 
     temp_6  =  (dit_complex_round)temp_7;
+#pragma hls_waive CNS
     if (N_FFT >=   64) {  stage_6.stageRun( temp_6,  twiddle_5); }
 
     temp_5  =  (dit_complex_round)temp_6;
+#pragma hls_waive CNS
     if (N_FFT >=  128) {  stage_5.stageRun( temp_5,  twiddle_6); }
 
     temp_4  =  (dit_complex_round)temp_5;
+#pragma hls_waive CNS
     if (N_FFT >=  256) {  stage_4.stageRun( temp_4,  twiddle_7); }
 
     temp_3  =  (dit_complex_round)temp_4;
+#pragma hls_waive CNS
     if (N_FFT >=  512) {  stage_3.stageRun( temp_3,  twiddle_8); }
 
     temp_2  =  (dit_complex_round)temp_3;
+#pragma hls_waive CNS
     if (N_FFT >= 1024) {  stage_2.stageRun( temp_2,  twiddle_9); }
 
     temp_1  =  (dit_complex_round)temp_2;
+#pragma hls_waive CNS
     if (N_FFT >= 2048) {  stage_1.stageRun( temp_1, twiddle_10); }
 
     temp_0  =  (dit_complex_round)temp_1;
+#pragma hls_waive CNS
     if (N_FFT >= 4096) {  stage_0.stageRun( temp_0, twiddle_11); }
 
     output = (dit_complex_round)temp_0;
@@ -360,20 +380,10 @@ private:
 template <unsigned N_FFT, int MEM_TH, int TWID_PREC, int DIT_D0_P, int DIT_D0_I>
 class ac_fft_dit_r2_sdf
 {
-private:
+public:
   // Typedefs for public function args declared first, to avoid compile-time errors.
   typedef ac_fixed < DIT_D0_P, DIT_D0_I, true > dit_fx0;
   typedef ac_complex < dit_fx0 > comp_dit0;
-
-public:
-  //-------------------------------------------------------------------------
-  // Constructor
-  //
-  ac_fft_dit_r2_sdf() {
-    // Reset action here:
-    write_out = false;
-    b = 0;
-  };
 
   //-------------------------------------------------------------------------
   // Member Function: run
@@ -394,8 +404,8 @@ public:
       if (write_out) {
         y1.write(b);
       } else {
-        b.r() = 0;
-        b.i() = 0;
+        b.r() = 0.0;
+        b.i() = 0.0;
       }
       b = y;
     }
@@ -419,6 +429,16 @@ public:
     cover(TWID_PREC <= 5);
 #endif
   }
+
+  //-------------------------------------------------------------------------
+  // Constructor
+  //
+  ac_fft_dit_r2_sdf() {
+    // Reset action here:
+    write_out = false;
+    b.r() = 0.0;
+    b.i() = 0.0;
+  };
 
 private:
   bool write_out;

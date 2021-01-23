@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -84,6 +84,14 @@
 //
 //      CCS_RETURN(0);
 //    }
+//
+// Revision History:
+//    3.3.0  - Added CDesignChecker waivers/fixes for ac_dsp IP blocks.
+//             Changes made in general:
+//               - CNS violations were waived away.
+//               - CCC violations were either waived away or, less commonly, fixed. Fixes consisted of changing unsigned loop iterators
+//               - FXD violations were fixed by changing integer literals to floating point literals.
+//               - MXS violations were fixed by converting unsigned ac_ints to int values and then adding them to another int variable.
 //
 //*********************************************************************************************************
 
@@ -172,7 +180,7 @@ public: // Functions
 // Description: firLoadCoeffsShiftReg() implements a non symmetric FIR filter with shift register
 
   void firLoadCoeffsShiftReg(IN_TYPE &data_in, COEFF_TYPE h[N_TAPS], OUT_TYPE &data_out) {
-    ACC_TYPE acc = 0;
+    ACC_TYPE acc = 0.0;
     firShiftReg(data_in);
     MAC:
     for (int i = (N_TAPS - 1); i >= 0; i--) {
@@ -186,7 +194,7 @@ public: // Functions
 // Description: firLoadCoeffsRotateShift() implements a Rotational shift based implementation
 
   void firLoadCoeffsRotateShift(IN_TYPE &data_in, COEFF_TYPE h[N_TAPS], OUT_TYPE &data_out) {
-    ACC_TYPE acc = 0;
+    ACC_TYPE acc = 0.0;
     IN_TYPE temp_rotate;
     MAC:
     for (int i = (N_TAPS); i >= 0; i--) {
@@ -206,7 +214,7 @@ public: // Functions
 // Description: firLoadCoeffsCircularBuff() implements a Circular Buffer based implementation
  
  void firLoadCoeffsCircularBuff(IN_TYPE &data_in, COEFF_TYPE h[N_TAPS], OUT_TYPE &data_out) {
-    ACC_TYPE acc = 0;
+    ACC_TYPE acc = 0.0;
     MAC:
     for (int i = 0; i <= (N_TAPS - 1); i++) {
       if (i == 0) {
@@ -223,7 +231,7 @@ public: // Functions
 // and shift register based implementation
 
   void firLoadCoeffsShiftRegSymmetricEvenTaps(IN_TYPE &data_in, COEFF_TYPE h[N_TAPS], OUT_TYPE &data_out) {
-    ACC_TYPE acc = 0;
+    ACC_TYPE acc = 0.0;
     firShiftReg(data_in);
     MAC:
     for (int i = (N_TAPS / 2) - 1; i >= 0; i--) {
@@ -238,8 +246,8 @@ public: // Functions
 // and shift register based implementation
 
   void firLoadCoeffsShiftRegSymmetricOddTaps(IN_TYPE &data_in, COEFF_TYPE h[N_TAPS], OUT_TYPE &data_out) {
-    ACC_TYPE acc = 0;
-    ACC_TYPE fold = 0;
+    ACC_TYPE acc = 0.0;
+    ACC_TYPE fold = 0.0;
     firShiftReg(data_in);
     MAC:
     for (int i = 0; i < (((N_TAPS - 1) / 2) + 1); i++) {
@@ -257,13 +265,13 @@ public: // Functions
 // Description: firConstCoeffsTransposed() implements the transposed form of the filter
 
   void firLoadCoeffsTransposed(IN_TYPE &data_in, COEFF_TYPE h[N_TAPS], OUT_TYPE &data_out) {
-    ACC_TYPE temp = 0;
+    ACC_TYPE temp = 0.0;
     IN_TYPE in = data_in;
 #pragma unroll yes
     MAC:
     for (int i = (N_TAPS - 1); i >= 0; i--) {
       if (i == 0)
-      { temp = 0; }
+      { temp = 0.0; }
       else
       { temp = reg_trans[i - 1]; }
       reg_trans[i] = in * h[(N_TAPS - 1) - i] + temp;
@@ -330,21 +338,27 @@ public: // Functions
 #endif
     {
       core_in = data_in.read();
+#pragma hls_waive CNS
       if (ftype == SHIFT_REG) {
         filter.firLoadCoeffsShiftReg(core_in, coeffs, core_out); // Shift register implementation
       }
+#pragma hls_waive CNS
       if (ftype == ROTATE_SHIFT) {
         filter.firLoadCoeffsRotateShift(core_in, coeffs, core_out); // Rotate shift implementation
       }
+#pragma hls_waive CNS
       if (ftype == C_BUFF) {
         filter.firLoadCoeffsCircularBuff(core_in, coeffs, core_out); // Circular buffer based implementation
       }
+#pragma hls_waive CNS
       if (ftype == FOLD_EVEN) {
         filter.firLoadCoeffsShiftRegSymmetricEvenTaps(core_in, coeffs, core_out); // Symmetric filter with even number of Taps
       }
+#pragma hls_waive CNS
       if (ftype == FOLD_ODD) {
         filter.firLoadCoeffsShiftRegSymmetricOddTaps(core_in, coeffs, core_out); // Symmetric filter with odd number of Taps
       }
+#pragma hls_waive CNS
       if (ftype == TRANSPOSED) {
         filter.firLoadCoeffsTransposed(core_in, coeffs, core_out); // Transposed form of the filter
       }

@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -95,6 +95,12 @@
 typedef enum { SHIFT_REG, ROTATE_SHIFT, C_BUFF, FOLD_EVEN, FOLD_ODD, TRANSPOSED, FOLD_EVEN_ANTI, FOLD_ODD_ANTI } FTYPE;
 #endif
 
+// The default constructors required by CDesignChecker mean that the C++ standard used for compilation should be C++11 or
+// later, failing which CDesignChecker will throw an error.
+#if defined(SLEC_CDESCHECK) && !(__cplusplus >= 201103L)
+#error Please use C++11 or a later standard for compilation, if you intend on using CDesignChecker.
+#endif
+
 #include <mc_scverify.h>
 
 //===============================================================================================================
@@ -114,6 +120,11 @@ private: // Data
   ac_int < ac::log2_ceil < N_TAPS >::val + 1, false > wptr;  // Read pointer for circular buffer implementation
   ac_int < ac::log2_ceil < N_TAPS >::val + 1, true > rptr;   // write pointer for circular buffer implementation
 
+#ifdef SLEC_CDESCHECK
+  // default constructor to prevent error in CDesignChecker
+  fir_const_coeffs_core() : coeffs{0} {}
+#endif
+
 public: 
   // Constructor
   fir_const_coeffs_core(const COEFF_TYPE *const ptr) : coeffs(ptr) {
@@ -131,6 +142,7 @@ public:
 #pragma hls_unroll yes
     SHIFT:
     for (int i = (N_TAPS - 1); i >= 0; i--) {
+#pragma hls_waive UMR
       reg[i] = (i == 0) ? din : reg[i - 1];
     }
   }
@@ -140,6 +152,7 @@ public:
 // Description: firCircularBuffWrite() implements a Circular buffer write operation
 
   void firCircularBuffWrite(IN_TYPE din) {
+#pragma hls_waive UMR
     reg[wptr] = din;
     if (wptr == N_TAPS - 1) {
       wptr = 0;
@@ -165,10 +178,11 @@ public:
 // Description: firConstCoeffsShiftReg() implements a non symmetric FIR filter with shift register
 
   void firConstCoeffsShiftReg(IN_TYPE &data_in, OUT_TYPE &data_out) {
-    ACC_TYPE acc = 0;
+    ACC_TYPE acc = 0.0;
     firShiftReg(data_in);       // Shift Reg
     MAC:
     for (int i = (N_TAPS - 1); i >= 0; i--) {
+#pragma hls_waive ABR
       acc += reg[i] * coeffs[i];
     }
     data_out = acc;
@@ -179,7 +193,7 @@ public:
 // Description: firConstCoeffsRotateShift() implements a Rotational shift based implementation
 
   void firConstCoeffsRotateShift(IN_TYPE &data_in, OUT_TYPE &data_out) {
-    ACC_TYPE acc = 0;
+    ACC_TYPE acc = 0.0;
     IN_TYPE temp_rotate;
     MAC:
     for (int i = (N_TAPS); i >= 0; i--) {
@@ -187,6 +201,7 @@ public:
         temp_rotate = data_in;
       } else {
         temp_rotate = reg[N_TAPS - 1];
+#pragma hls_waive ABR
         acc += reg[N_TAPS - 1] * coeffs[i];
       }
       firShiftReg(temp_rotate);       // Rotate right
@@ -205,6 +220,7 @@ public:
       if (i == 0) {
         firCircularBuffWrite(data_in);              // Store in circular buffer
       }
+#pragma hls_waive ABR
       acc += firCircularBuffRead(i) * coeffs[i];    // Read from circular buffer
     }
     data_out = acc;
@@ -216,10 +232,11 @@ public:
 // and shift register based implementation
 
   void firConstCoeffsShiftRegSymmetricEvenTaps(IN_TYPE &data_in, OUT_TYPE &data_out) {
-    ACC_TYPE acc = 0;
+    ACC_TYPE acc = 0.0;
     firShiftReg(data_in);
     MAC:
     for (int i = (N_TAPS / 2) - 1; i >= 0; i--) {
+#pragma hls_waive ABR
       acc += coeffs[i] * (reg[i] + reg[N_TAPS - 1 - i]);
     }
     data_out = acc;
@@ -231,8 +248,8 @@ public:
 // and shift register based implementation
 
   void firConstCoeffsShiftRegSymmetricOddTaps(IN_TYPE &data_in, OUT_TYPE &data_out) {
-    ACC_TYPE acc = 0;
-    ACC_TYPE fold = 0;
+    ACC_TYPE acc = 0.0;
+    ACC_TYPE fold = 0.0;
     firShiftReg(data_in);
     MAC:
     for (int i = 0; i < (((N_TAPS - 1) / 2) + 1); i++) {
@@ -241,6 +258,7 @@ public:
       } else {
         fold = reg[i] + reg[(N_TAPS - 1) - i];
       }
+#pragma hls_waive ABR
       acc += coeffs[i] * fold;
     }
     data_out = acc;
@@ -251,16 +269,18 @@ public:
 // Description: firConstCoeffsTransposed() implements the transposed form of the filter
 
   void firConstCoeffsTransposed(IN_TYPE &data_in, OUT_TYPE &data_out) {
-    ACC_TYPE temp = 0;
+    ACC_TYPE temp = 0.0;
     IN_TYPE in = data_in;
 #pragma unroll yes
     MAC:
     for (int i = (N_TAPS - 1); i >= 0; i--) {
       if (i == 0) {
-        temp = 0;
+        temp = 0.0;
       } else {
+#pragma hls_waive UMR
         temp = reg_trans[i - 1];
       }
+#pragma hls_waive ABR
       reg_trans[i] = in * coeffs[(N_TAPS - 1) - i] + temp;
     }
     data_out = reg_trans[N_TAPS - 1];
@@ -282,7 +302,7 @@ class ac_fir_const_coeffs
 {
 public:
   // constructor with pointer of const coeff array as an arg
-  ac_fir_const_coeffs(const COEFF_TYPE *const c_ptr) : filter(c_ptr) { }
+  ac_fir_const_coeffs(const COEFF_TYPE *const c_ptr) : filter(c_ptr) {}
 
 //------------------------------------------------------------------------------------------------------
 // Member Function: run()
@@ -298,21 +318,27 @@ public:
 #endif
     {
       core_in = data_in.read();
+#pragma hls_waive CNS
       if (ftype == SHIFT_REG) {
         filter.firConstCoeffsShiftReg(core_in, core_out);                   // Shift register implementation
       }
+#pragma hls_waive CNS
       if (ftype == ROTATE_SHIFT) {
         filter.firConstCoeffsRotateShift(core_in, core_out);                // Rotate shift implementation
       }
+#pragma hls_waive CNS
       if (ftype == C_BUFF) {
         filter.firConstCoeffsCircularBuff(core_in, core_out);               // Circular buffer based implementation
       }
+#pragma hls_waive CNS
       if (ftype == FOLD_EVEN) {
         filter.firConstCoeffsShiftRegSymmetricEvenTaps(core_in, core_out);  // Symmetric filter with even number of Taps
       }
+#pragma hls_waive CNS
       if (ftype == FOLD_ODD) {
         filter.firConstCoeffsShiftRegSymmetricOddTaps(core_in, core_out);   // Symmetric filter with odd number of Taps
       }
+#pragma hls_waive CNS
       if (ftype == TRANSPOSED) {
         filter.firConstCoeffsTransposed(core_in, core_out);                 // Transposed form of the filter
       }
@@ -322,6 +348,11 @@ public:
 
 private:
   fir_const_coeffs_core < IN_TYPE, OUT_TYPE, COEFF_TYPE, ACC_TYPE, N_TAPS > filter;
+
+#ifdef SLEC_CDESCHECK
+  // default constructor to prevent error in CDesignChecker
+  ac_fir_const_coeffs() { }
+#endif
 };
 
 #endif

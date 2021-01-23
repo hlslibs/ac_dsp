@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -72,6 +72,12 @@
 #ifndef _INCLUDED_AC_MV_AVG_H_
 #define _INCLUDED_AC_MV_AVG_H_
 
+// The default constructors required by CDesignChecker mean that the C++ standard used for compilation should be C++11 or
+// later, failing which CDesignChecker will throw an error.
+#if defined(SLEC_CDESCHECK) && !(__cplusplus >= 201103L)
+#error Please use C++11 or a later standard for compilation, if you intend on using CDesignChecker.
+#endif
+
 #include <ac_fixed.h>
 #include <ac_window.h>
 #include <ac_channel.h>
@@ -87,9 +93,7 @@ class ac_mv_avg_core
 {
 public: // Functions
   // Constructor
-  ac_mv_avg_core(const COEFF_TYPE *const ptr) : coeffs(ptr) {
-    acc_reg = 0;
-  }
+  ac_mv_avg_core(const COEFF_TYPE *const ptr) : coeffs(ptr), acc_reg(0.0) { }
 
 //--------------------------------------------------------------------------------------------------------------------------
 // Member Function: mvAvgCore()
@@ -104,7 +108,7 @@ public: // Functions
         acc_reg = acc_reg + (ACC_TYPE) w[j] * coeffs[j + (TAPS / 2)]; /* Accumulator */
       }
       data_out = acc_reg;
-      acc_reg = 0;
+      acc_reg = 0.0;
     }
   }
 
@@ -150,6 +154,7 @@ public:
 #endif
     {
       n_sample_t = n_sample.read();
+#pragma hls_waive CNS
       if (WIN_TYPE == AC_WIN) { // Does not have boundary condition
         sample = n_sample_t;
       } else {
@@ -178,6 +183,11 @@ public:
     }
   }
 
+private:
+#ifdef SLEC_CDESCHECK
+  // default constructor to prevent error in CDesignChecker
+  ac_mv_avg() : cff_ptr{0} { }
+#endif
 };
 
 #endif

@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 3.2                                                 *
+ *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Fri Aug 23 11:40:48 PDT 2019                        *
+ *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.2.1                                               *
+ *  Release Build   : 3.4.0                                               *
  *                                                                        *
  *  Copyright , Mentor Graphics Corporation,                     *
  *                                                                        *
@@ -75,10 +75,10 @@ private:
   ac_int < 8, false >  rate_cnt;
   OUT_TYPE             intg_reg[N_];
   
-	//--------------------------------------------------------------------------------------
-	// Member Function: intStage()
-	// Description: Implements integrators for number of stages configured 
-	//
+//--------------------------------------------------------------------------------------
+// Member Function: intStage()
+// Description: Implements integrators for number of stages configured 
+//
   void intStage(OUT_TYPE data_in, OUT_TYPE &data_out) {
 #pragma unroll yes
     INTG_STG: for (int i = N_ - 1; i > 0; i--) {
@@ -150,11 +150,11 @@ public:
       rate_cnt1 = 0;
       dvalid = false;
     } else if (rate_cnt1 == R_ - 2) {
-      data_in_t = 0;
+      data_in_t = 0.0;
       rate_cnt1++;
       dvalid = true;
     } else {
-      data_in_t = 0;
+      data_in_t = 0.0;
       rate_cnt1++;
       dvalid = false;
     }
@@ -180,8 +180,15 @@ public: // Functions
 
   // Constructor
   ac_cic_full_core_diff() {
-    // initialize comb_dly_ln to 0
-    ac::init_array < AC_VAL_0 > (&comb_dly_ln[0][0], N_ * M_);
+#pragma hls_unroll yes
+    INIT_COMB_DLY_ROW: for (int i = 0; i < N_; i++) {
+#pragma hls_unroll yes
+      INIT_COMB_DLY_COL: for (int j = 0; j < M_; j++) {
+        // Using loops to initialize array instead of ac::init_array for the time being,
+        // so as to avoid UMR violations in CDesignChecker.
+        comb_dly_ln[i][j] = 0.0;
+      }
+    }
   }
 
 //------------------------------------------------------------------------------------------

@@ -5,7 +5,7 @@
 //***********************************************************************************
 
 // To compile and run:
-// $MGC_HOME/bin/c++ -std=c++11 -I$MGC_HOME/shared/include -I$MGC_HOME/shared/pkgs/ac_dsp/include/ac_dsp ac_fir_const_coeffs_main_tb.cpp -o design
+// $MGC_HOME/bin/c++ -std=c++11 -I$MGC_HOME/shared/include rtest_ac_fir_const_coeffs.cpp -o design
 // ./design
 
 #include <ac_dsp/ac_fir_const_coeffs.h>
