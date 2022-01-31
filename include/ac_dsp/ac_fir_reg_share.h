@@ -4,14 +4,12 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
+ *  Release Date    : Mon Jan 31 11:05:01 PST 2022                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.0                                               *
+ *  Release Build   : 3.4.2                                               *
  *                                                                        *
- *  Copyright , Mentor Graphics Corporation,                     *
+ *  Copyright 2018 Siemens                                                *
  *                                                                        *
- *  All Rights Reserved.                                                  *
- *  
  **************************************************************************
  *  Licensed under the Apache License, Version 2.0 (the "License");       *
  *  you may not use this file except in compliance with the License.      * 
@@ -63,6 +61,14 @@
 //
 //      CCS_RETURN(0);
 //    }
+// Revision History:
+//    3.4.0  - Added CDesignChecker waivers/fixes for ac_dsp IP blocks.
+//             Changes made in general:
+//               - CNS violations were waived away.
+//               - FXD violations were fixed by typecasting and assigning fixed value
+//                 initializations to ac_fixed variables.
+//               - ABR and ABW violations were waived away.
+//
 //
 //*************************************************************************************
 
@@ -114,6 +120,7 @@ public:
   void firShiftReg(IN_TYPE din) {
 #pragma hls_unroll yes
     SHIFT: for (int i = (N_TAPS - 1); i >= 0; i--) {
+#pragma hls_waive ABR ABW
       reg[i] = (i == 0) ? din : reg[i - 1];
     }
   }
@@ -131,13 +138,14 @@ public:
 // Description: firProgCoeffsShiftReg() implements a non symmetric FIR filter with shift register
 
   void firProgCoeffsShiftReg(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
-    ACC_TYPE acc = 0;
+    ACC_TYPE acc = 0.0;
     int ram_addr = 0;
     int index = 0;
     BLK: for ( int i = 0; i < N_TAPS; i+= BLK_SZ, ram_addr+= MEM_WORD_WIDTH )  {
       index = 0;
 #pragma unroll yes
       MAC: for ( int block_count = BLK_OFFSET; block_count < (BLK_OFFSET + BLK_SZ); block_count ++) {
+#pragma hls_waive ABR
         acc += (reg[i + index]) * coeffs[ram_addr + block_count];
         index++;
       }
@@ -151,13 +159,14 @@ public:
 // and shift register based implementation
 
   void firProgCoeffsShiftRegSymmetricEvenTaps(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
-    ACC_TYPE acc = 0;
+    ACC_TYPE acc = 0.0;
     int ram_addr = 0;
     int index = 0;
     BLK: for ( int i = 0; i < N_TAPS/2; i+= BLK_SZ, ram_addr+= MEM_WORD_WIDTH )  {
       index = 0;
 #pragma unroll yes
       MAC: for ( int block_count = BLK_OFFSET; block_count < (BLK_OFFSET + BLK_SZ); block_count ++) {
+#pragma hls_waive ABR
         acc += (reg[i + index] + reg[N_TAPS - 1 - i - index] ) * coeffs[ram_addr + block_count];
         index++;
       }
@@ -171,13 +180,14 @@ public:
 // and shift register based implementation
 
   void firProgCoeffsShiftRegAntiSymmetricEvenTaps(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
-    ACC_TYPE acc = 0;
+    ACC_TYPE acc = 0.0;
     int ram_addr = 0;
     int index = 0;
     BLK: for ( int i = 0; i < N_TAPS/2; i+= BLK_SZ, ram_addr+= MEM_WORD_WIDTH )  {
       index = 0;
 #pragma unroll yes
       MAC: for ( int block_count = BLK_OFFSET; block_count < (BLK_OFFSET + BLK_SZ); block_count ++) {
+#pragma hls_waive ABR
         acc += (reg[i + index] - reg[N_TAPS - 1 - i - index] ) * coeffs[ram_addr + block_count];
         index++;
       }
@@ -191,8 +201,8 @@ public:
 // and shift register based implementation
 
   void firProgCoeffsShiftRegSymmetricOddTaps(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
-    ACC_TYPE acc = 0;
-    ACC_TYPE fold = 0;
+    ACC_TYPE acc = 0.0;
+    ACC_TYPE fold = 0.0;
     int ram_addr = 0;
     int index = 0;
     BLK: for (int i = 0; i < (((N_TAPS - 1) / 2) + 1); i+= BLK_SZ, ram_addr+= MEM_WORD_WIDTH) {
@@ -200,9 +210,9 @@ public:
 #pragma unroll yes
       MAC: for ( int block_count = BLK_OFFSET; block_count < (BLK_OFFSET + BLK_SZ); block_count ++) {
         if ((i + index)  == (N_TAPS - 1) / 2)
-        { fold = reg[i + index]; }                      // Central passes through
+        { fold = ACC_TYPE(reg[i + index]); }                      // Central passes through
         else
-        { fold = reg[i + index] + reg[(N_TAPS - 1) - i - index]; }
+        { fold = ACC_TYPE(reg[i + index] + reg[(N_TAPS - 1) - i - index]); }
         index++;
         acc += coeffs[ram_addr + block_count] * fold;
       }
@@ -216,8 +226,8 @@ public:
 // and shift register based implementation
 
   void firProgCoeffsShiftRegAntiSymmetricOddTaps(IN_TYPE &data_in, COEFF_TYPE coeffs[N_TAPS], OUT_TYPE &data_out) {
-    ACC_TYPE acc = 0;
-    ACC_TYPE fold = 0;
+    ACC_TYPE acc = 0.0;
+    ACC_TYPE fold = 0.0;
     int ram_addr = 0;
     int index = 0;
     BLK: for (int i = 0; i < (((N_TAPS - 1) / 2) + 1); i+= BLK_SZ, ram_addr+= MEM_WORD_WIDTH) {
@@ -225,9 +235,9 @@ public:
 #pragma unroll yes
       MAC: for ( int block_count = BLK_OFFSET; block_count < (BLK_OFFSET + BLK_SZ); block_count ++) {
         if ((i + index)  == (N_TAPS - 1) / 2)
-        { fold = reg[i + index]; }                      // Central passes through
+        { fold = ACC_TYPE(reg[i + index]); }                      // Central passes through
         else
-        { fold = reg[i + index] - reg[(N_TAPS - 1) - i - index]; }
+        { fold = ACC_TYPE(reg[i + index] - reg[(N_TAPS - 1) - i - index]); }
         index++;
         acc += coeffs[ram_addr + block_count] * fold;
       }
@@ -281,9 +291,11 @@ public: // Functions
     if (ftype == FOLD_EVEN_ANTI) {
       filter.firProgCoeffsShiftRegAntiSymmetricEvenTaps(core_in, coeffs, core_out); // Anti Symmetric filter with even number of Taps
     }
+#pragma hls_waive CNS
     if (ftype == FOLD_ODD) {
       filter.firProgCoeffsShiftRegSymmetricOddTaps(core_in, coeffs, core_out); // Symmetric filter with odd number of Taps
     }
+#pragma hls_waive CNS
     if (ftype == FOLD_ODD_ANTI) {
       filter.firProgCoeffsShiftRegAntiSymmetricOddTaps(core_in, coeffs, core_out); // Anti Symmetric filter with odd number of Taps
     }

@@ -4,14 +4,12 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
+ *  Release Date    : Mon Jan 31 11:05:01 PST 2022                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.0                                               *
+ *  Release Build   : 3.4.2                                               *
  *                                                                        *
- *  Copyright , Mentor Graphics Corporation,                     *
+ *  Copyright 2018 Siemens                                                *
  *                                                                        *
- *  All Rights Reserved.                                                  *
- *  
  **************************************************************************
  *  Licensed under the Apache License, Version 2.0 (the "License");       *
  *  you may not use this file except in compliance with the License.      * 
@@ -73,6 +71,14 @@
 //      CCS_RETURN(0);
 //    }
 //
+// Revision History:
+//    3.4.0  - Added CDesignChecker waivers/fixes for ac_dsp IP blocks.
+//             Changes made in general:
+//               - CNS violations were waived away.
+//               - FXD violations were fixed by assigning fixed value
+//                 initializations to ac_fixed variables.
+//               - ABR and UMR violations were waived away.
+//
 //***********************************************************************************************************//
 
 #ifndef _INCLUDED_AC_POLY_INTR_H_
@@ -128,7 +134,7 @@ public: // Functions
         flip = !flip;
       }
       ACC_TYPE fold, acc;
-      acc = 0;
+      acc = 0.0;
 #pragma unroll
       MAC_E: for (int i = (NTAPS / 2) - 1; i >= 0; i--) {
         IN_TYPE tp;
@@ -181,7 +187,7 @@ public: // Functions
         flip = !flip;
       }
       ACC_TYPE fold, acc;
-      acc = 0;
+      acc = 0.0;
 #pragma unroll
       MAC_O: for (int i = 0; i < (((NTAPS - 1) / 2) + 1); i++) {
         if (i == (NTAPS - 1) / 2) {
@@ -201,10 +207,12 @@ public: // Functions
       if (flip) {
         acc_b[j] = acc;
         t1 = acc_a[j];
+#pragma hls_waive ABR
         t2 = acc_a[corr[j]];
       } else {
         acc_a[j] = acc;
         t1 = acc_b[j];
+#pragma hls_waive ABR
         t2 = acc_b[corr[j]];
       }
       if (init)
@@ -238,7 +246,7 @@ public: // Functions
         flip = !flip;
       }
       ACC_TYPE fold, acc;
-      acc = 0;
+      acc = 0.0;
 #pragma unroll
       MAC_N: for (int i = (NTAPS - 1); i >= 0; i--) {
         acc += taps[i] * coeffs[i + NTAPS * j];
@@ -284,13 +292,19 @@ public: // Functions
       ctrl_t = ctrl_st.read();
       coeffs_t = coeffs_st.read();
     } else {
+#pragma hls_waive CNS
       if (ftype == FOLD_EVEN) {
+#pragma hls_waive UMR
         filter_inst.ac_polyIntrSymmetricEvenTaps(data_in, data_out, coeffs_t.coeffs, ctrl_t.sign, ctrl_t.corr); // Symmetric filter with even number of Taps
       }
+#pragma hls_waive CNS
       if (ftype == FOLD_ODD) {
+#pragma hls_waive UMR
         filter_inst.ac_polyIntrSymmetricOddTaps(data_in, data_out, coeffs_t.coeffs, ctrl_t.sign, ctrl_t.corr);  // Symmetric filter with odd number of Taps
       }
+#pragma hls_waive CNS
       if (ftype == FOLD_ANTI) {
+#pragma hls_waive UMR
         filter_inst.ac_polyIntrAntiSymmetric(data_in, data_out, coeffs_t.coeffs, ctrl_t.sign, ctrl_t.corr);     // Antisymmetric filter
       }
     }

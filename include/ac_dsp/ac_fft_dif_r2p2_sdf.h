@@ -4,14 +4,12 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
+ *  Release Date    : Mon Jan 31 11:05:01 PST 2022                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.0                                               *
+ *  Release Build   : 3.4.2                                               *
  *                                                                        *
- *  Copyright , Mentor Graphics Corporation,                     *
+ *  Copyright 2018 Siemens                                                *
  *                                                                        *
- *  All Rights Reserved.                                                  *
- *  
  **************************************************************************
  *  Licensed under the Apache License, Version 2.0 (the "License");       *
  *  you may not use this file except in compliance with the License.      * 
@@ -86,6 +84,11 @@
 //  in a compile error.
 //  Currently, the block only accepts signed ac_complex<ac_fixed> inputs and outputs which use AC_TRN
 //  and AC_WRAP as their rounding and overflow modes.
+//
+// Revision History:
+//    3.4.0  - Added CDesignChecker waivers/fixes for ac_dsp IP blocks.
+//             Changes made in general:
+//               - UMR violations were waived away.
 //
 //*********************************************************************************************************
 
@@ -297,6 +300,7 @@ private:
     if ((1 << STAGE) < (MEM_TH)) {
 #pragma unroll yes
       for (int i = (1 << STAGE) - 1; i > 0; i--) {
+#pragma hls_waive UMR
         shift_reg[i] = shift_reg[i - 1];
       }
       shift_reg[0] = in;

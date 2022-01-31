@@ -4,14 +4,12 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
+ *  Release Date    : Mon Jan 31 11:05:01 PST 2022                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.0                                               *
+ *  Release Build   : 3.4.2                                               *
  *                                                                        *
- *  Copyright , Mentor Graphics Corporation,                     *
+ *  Copyright 2018 Siemens                                                *
  *                                                                        *
- *  All Rights Reserved.                                                  *
- *  
  **************************************************************************
  *  Licensed under the Apache License, Version 2.0 (the "License");       *
  *  you may not use this file except in compliance with the License.      * 
@@ -62,6 +60,11 @@
 //
 //      CCS_RETURN(0);
 //    }
+// Revision History:
+//    3.4.0  - Added CDesignChecker waivers/fixes for ac_dsp IP blocks.
+//             Changes made in general:
+//               - FXD violations were fixed by assigning fixed value
+//                 initializations to ac_fixed variables.
 //
 //***********************************************************************************************************//
 
@@ -86,7 +89,7 @@ public: // Functions
   ac_poly_dec() {
     ac::init_array < AC_VAL_0 > (taps, NTAPS * DF);
     ac::init_array < AC_VAL_0 > (acc1, DF);
-    acc = 0;
+    acc = 0.0;
   };
 
 //------------------------------------------------------------------------------------------------------
@@ -118,11 +121,11 @@ public: // Functions
           acc1[df] = acc1[df] + taps[tp * DF] * coeffs_t.coeffs[tap_index];
         }
         acc =  acc + acc1[df];
-        acc1[df] = 0;
+        acc1[df] = 0.0;
       }
       OUT_TYPE acc_t = acc;
       data_out.write(acc_t);
-      acc = 0;
+      acc = 0.0;
     }
   }
 

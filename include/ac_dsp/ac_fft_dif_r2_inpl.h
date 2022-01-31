@@ -4,14 +4,12 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
+ *  Release Date    : Mon Jan 31 11:05:01 PST 2022                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.0                                               *
+ *  Release Build   : 3.4.2                                               *
  *                                                                        *
- *  Copyright , Mentor Graphics Corporation,                     *
+ *  Copyright 2018 Siemens                                                *
  *                                                                        *
- *  All Rights Reserved.                                                  *
- *  
  **************************************************************************
  *  Licensed under the Apache License, Version 2.0 (the "License");       *
  *  you may not use this file except in compliance with the License.      * 
@@ -82,6 +80,15 @@
 //  Currently, the block only accepts signed ac_complex<ac_fixed> inputs
 //  and outputs which use AC_TRN and AC_WRAP as their rounding and
 //  overflow modes.
+//
+// Revision History:
+//    3.4.0  - Added CDesignChecker waivers/fixes for ac_dsp IP blocks.
+//             Changes made in general:
+//               - CNS violations were waived away.
+//               - MXS violations was fixed by changing a variable to an 
+//                 unsigned int variable to ensure it is of the same signedness 
+//                 to the variable it is assigned to.
+//
 //
 //***************************************************************************
 
@@ -220,7 +227,7 @@ public:
       n2 = n1;
       n1 >>= 1;
       SEGMENT_LOOP: for (int j = 0; j < N_FFT / 2; j++) {
-        int k = j;
+        unsigned int k = j;
 
         BUTTERFLY_LOOP: for (int kk = 0; kk < N_FFT / 2; kk++) {
           id_bank_2 = id_bank_1 ^ (-1 << i);
@@ -237,6 +244,7 @@ public:
           ac_int < (FFT_STAGES - 1) + 1, false > t;
           t = (1 & ((n << 2) >> (FFT_STAGES - 1))) ? (ac_int < (FFT_STAGES - 1) + 1, false >) ((((1 << (FFT_STAGES - 1)) >> 2)) - (n & ((((1 << (FFT_STAGES - 1)) >> 2)) - 1))) : (ac_int < (FFT_STAGES - 1) + 1, false >) (n & ((((1 << (FFT_STAGES - 1)) >> 2)) - 1));
 
+#pragma hls_waive CNS
           // Twiddle ROM selection
           switch (FFT_STAGES) {
             case 1:

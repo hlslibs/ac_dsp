@@ -4,14 +4,12 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
+ *  Release Date    : Mon Jan 31 11:05:01 PST 2022                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.0                                               *
+ *  Release Build   : 3.4.2                                               *
  *                                                                        *
- *  Copyright , Mentor Graphics Corporation,                     *
+ *  Copyright 2018 Siemens                                                *
  *                                                                        *
- *  All Rights Reserved.                                                  *
- *  
  **************************************************************************
  *  Licensed under the Apache License, Version 2.0 (the "License");       *
  *  you may not use this file except in compliance with the License.      * 
@@ -88,6 +86,12 @@
 //  Currently, the block only accepts signed ac_complex<ac_fixed> inputs
 //  and outputs which use AC_TRN and AC_WRAP as their rounding and
 //  overflow modes.
+// Revision History:
+//    3.4.0  - Added CDesignChecker waivers/fixes for ac_dsp IP blocks.
+//             Changes made in general:
+//               - CNS violations were waived away.
+//               - UMR violations were waived away.
+//
 //
 //*********************************************************************************
 
@@ -157,6 +161,7 @@ public:
     readMem(yt);
     mult = 0;
 
+#pragma hls_waive CNS
     if (radix4) {               // Switch between Radix 2 and Radix 2^2 butterfly Structure
       if (itrator[STAGE]) {
 
@@ -312,6 +317,7 @@ private:
     if ((1 << STAGE) < (MEM_TH)) {
 #pragma unroll yes
       for (int i = (1 << STAGE) - 1; i > 0; i--) {
+#pragma hls_waive UMR
         shift_reg[i] = shift_reg[i - 1];
       }
       shift_reg[0] = in;
@@ -349,12 +355,14 @@ public:
     dif_complex temp_11, temp_10, temp_9, temp_8, temp_7, temp_6, temp_5,
                 temp_4, temp_3, temp_2, temp_1, temp_0;
 
+#pragma hls_waive CNS
     if (N_FFT >= 4096) {
       temp_11 = (dif_complex_round)input;
       stage_init = true;
       r4 = true;
       stage_11.stageRun(temp_11, temp_11, twiddle_11, r4);
     }
+#pragma hls_waive CNS
     if (N_FFT >= 2048) {
       if (stage_init) { temp_10 = (dif_complex_round)temp_11; }
       else            { temp_10 = (dif_complex_round)input; }
@@ -362,7 +370,7 @@ public:
       stage_10.stageRun(temp_10, temp_10, r4 ? twiddle_11 : twiddle_10, r4);
       r4 = true;
     }
-
+#pragma hls_waive CNS
     if (N_FFT >= 1024) {
       if (stage_init) { temp_9 = (dif_complex_round)temp_10; }
       else            { temp_9 = (dif_complex_round)input; }
@@ -370,7 +378,7 @@ public:
       r4 = true;
       stage_9.stageRun(temp_9, temp_9, twiddle_9, r4);
     }
-
+#pragma hls_waive CNS
     if (N_FFT >= 512) {
       if (stage_init) { temp_8 = (dif_complex_round)temp_9; }
       else            { temp_8 = (dif_complex_round)input; }
@@ -378,7 +386,7 @@ public:
       stage_8.stageRun(temp_8, temp_8, r4 ? twiddle_9 : twiddle_8, r4);
       r4 = true;
     }
-
+#pragma hls_waive CNS
     if (N_FFT >= 256) {
       if (stage_init) { temp_7 = (dif_complex_round)temp_8; }
       else            { temp_7 = (dif_complex_round)input; }
@@ -386,7 +394,7 @@ public:
       r4 = true;
       stage_7.stageRun(temp_7, temp_7, twiddle_7,r4);
     }
-
+#pragma hls_waive CNS
     if (N_FFT >= 128) {
       if (stage_init) { temp_6 = (dif_complex_round)temp_7; }
       else            { temp_6 = (dif_complex_round)input; }
@@ -394,7 +402,7 @@ public:
       stage_6.stageRun(temp_6, temp_6, r4 ? twiddle_7 : twiddle_6, r4);
       r4 = true;
     }
-
+#pragma hls_waive CNS
     if (N_FFT >= 64) {
       if (stage_init) { temp_5 = (dif_complex_round)temp_6; }
       else            { temp_5 = (dif_complex_round)input; }
@@ -402,7 +410,7 @@ public:
       r4 = true;
       stage_5.stageRun(temp_5, temp_5, twiddle_5, r4);
     }
-
+#pragma hls_waive CNS
     if (N_FFT >= 32) {
       if (stage_init) { temp_4 = (dif_complex_round)temp_5; }
       else            { temp_4 = (dif_complex_round)input; }
@@ -410,7 +418,7 @@ public:
       stage_4.stageRun(temp_4, temp_4, r4 ? twiddle_5 : twiddle_4, r4);
       r4 = true;
     }
-
+#pragma hls_waive CNS
     if (N_FFT >= 16) {
       if (stage_init) { temp_3 = (dif_complex_round)temp_4; }
       else            { temp_3 = (dif_complex_round)input; }
@@ -418,7 +426,7 @@ public:
       r4 = true;
       stage_3.stageRun(temp_3, temp_3, twiddle_3, r4);
     }
-
+#pragma hls_waive CNS
     if (N_FFT >= 8) {
       if (stage_init) { temp_2 = (dif_complex_round)temp_3; }
       else            { temp_2 = (dif_complex_round)input; }
@@ -426,7 +434,7 @@ public:
       stage_2.stageRun(temp_2, temp_2, r4 ? twiddle_3 : twiddle_2, r4);
       r4 = true;
     }
-
+#pragma hls_waive CNS
     if (N_FFT >= 4) {
       if (stage_init) { temp_1 = (dif_complex_round)temp_2; }
       else            { temp_1 = (dif_complex_round)input; }
@@ -434,7 +442,7 @@ public:
       r4 = true;
       stage_1.stageRun(temp_1, temp_1, twiddle_3, r4);
     }
-
+#pragma hls_waive CNS
     if (N_FFT >= 2) {
       if (stage_init) { temp_0 = (dif_complex_round)temp_1; }
       else            { temp_0 = (dif_complex_round)input; }

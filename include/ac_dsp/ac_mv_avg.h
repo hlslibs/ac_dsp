@@ -4,14 +4,12 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
+ *  Release Date    : Mon Jan 31 11:05:01 PST 2022                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.0                                               *
+ *  Release Build   : 3.4.2                                               *
  *                                                                        *
- *  Copyright , Mentor Graphics Corporation,                     *
+ *  Copyright 2018 Siemens                                                *
  *                                                                        *
- *  All Rights Reserved.                                                  *
- *  
  **************************************************************************
  *  Licensed under the Apache License, Version 2.0 (the "License");       *
  *  you may not use this file except in compliance with the License.      * 
@@ -66,6 +64,10 @@
 //
 //      CCS_RETURN(0);
 //    }
+// Revision History:
+//    3.4.0  - Added CDesignChecker waivers/fixes for ac_dsp IP blocks.
+//             Changes made in general:
+//               - CNS and UMR violations were waived away.
 //
 *************************************************************************************/
 
@@ -105,6 +107,7 @@ public: // Functions
     if (w.valid()) {
 #pragma unroll
       ACC: for (int j = -TAPS / 2; j <= TAPS / 2; j++) {
+#pragma hls_waive ABR
         acc_reg = acc_reg + (ACC_TYPE) w[j] * coeffs[j + (TAPS / 2)]; /* Accumulator */
       }
       data_out = acc_reg;
@@ -174,6 +177,7 @@ public:
         }
         eol = (cnt_sample == n_sample_t - 1) ? 1 : 0;                       // End of the element
         sol = (cnt_sample == 0) ? 1 : 0;                                    // Start of the element
+#pragma hls_waive UMR
         mv_avg_inst.mvAvgCore(data_in_t, sol, eol, data_out_t, valid);      // Call core functionality of the filter
         if (valid) {
           data_out.write(data_out_t);

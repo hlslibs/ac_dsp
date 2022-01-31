@@ -4,14 +4,12 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Sat Jan 23 14:58:27 PST 2021                        *
+ *  Release Date    : Mon Jan 31 11:05:01 PST 2022                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.0                                               *
+ *  Release Build   : 3.4.2                                               *
  *                                                                        *
- *  Copyright , Mentor Graphics Corporation,                     *
+ *  Copyright 2018 Siemens                                                *
  *                                                                        *
- *  All Rights Reserved.                                                  *
- *  
  **************************************************************************
  *  Licensed under the Apache License, Version 2.0 (the "License");       *
  *  you may not use this file except in compliance with the License.      * 
@@ -122,7 +120,13 @@ private: // Data
 
 #ifdef SLEC_CDESCHECK
   // default constructor to prevent error in CDesignChecker
-  fir_const_coeffs_core() : coeffs{0} {}
+  fir_const_coeffs_core() : coeffs{0} {
+    // Arrays and variables initialized in default constructor too, so as to prevent UMR violations later.
+    wptr = 0;
+    rptr = 0;
+    ac::init_array < AC_VAL_0 > (reg, N_TAPS);
+    ac::init_array < AC_VAL_0 > (reg_trans, N_TAPS);
+  }
 #endif
 
 public: 
@@ -142,7 +146,6 @@ public:
 #pragma hls_unroll yes
     SHIFT:
     for (int i = (N_TAPS - 1); i >= 0; i--) {
-#pragma hls_waive UMR
       reg[i] = (i == 0) ? din : reg[i - 1];
     }
   }
@@ -152,7 +155,6 @@ public:
 // Description: firCircularBuffWrite() implements a Circular buffer write operation
 
   void firCircularBuffWrite(IN_TYPE din) {
-#pragma hls_waive UMR
     reg[wptr] = din;
     if (wptr == N_TAPS - 1) {
       wptr = 0;
@@ -277,7 +279,6 @@ public:
       if (i == 0) {
         temp = 0.0;
       } else {
-#pragma hls_waive UMR
         temp = reg_trans[i - 1];
       }
 #pragma hls_waive ABR
@@ -356,4 +357,3 @@ private:
 };
 
 #endif
-
