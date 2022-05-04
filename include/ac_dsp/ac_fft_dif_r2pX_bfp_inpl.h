@@ -4,9 +4,9 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Mon Jan 31 11:05:01 PST 2022                        *
+ *  Release Date    : Wed May  4 10:47:29 PDT 2022                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.2                                               *
+ *  Release Build   : 3.4.3                                               *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -136,6 +136,9 @@
 //  Currently, the block only accepts signed ac_complex<ac_fixed> inputs and outputs which use AC_TRN
 //  and AC_WRAP as their rounding and overflow modes.
 //
+// Revision History:
+//    3.4.3  - dgb - Updated compiler checks to work with MS VS 2019
+//
 //*********************************************************************************************************
 
 
@@ -154,8 +157,11 @@
 // The coverAssert function uses the static_assert() function, which is only supported by C++11 or later
 // compiler standards. Hence, the user should be informed if they have defined COVER_ON but not used
 // C++11 or a later compiler standard.
-#if defined(ASSERT_ON) && __cplusplus < 201103L
+#if defined(ASSERT_ON) && (defined(__GNUC__) && (__cplusplus < 201103L))
 #error Please use C++11 or a later standard for compilation.
+#endif
+#if defined(ASSERT_ON) && (defined(_MSC_VER) && (_MSC_VER < 1920) && !defined(__EDG__))
+#error Please use Microsoft VS 2019 or a later standard for compilation.
 #endif
 
 #include <mc_scverify.h>

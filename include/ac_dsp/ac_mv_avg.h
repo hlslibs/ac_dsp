@@ -4,9 +4,9 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Mon Jan 31 11:05:01 PST 2022                        *
+ *  Release Date    : Wed May  4 10:47:29 PDT 2022                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.2                                               *
+ *  Release Build   : 3.4.3                                               *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -64,7 +64,9 @@
 //
 //      CCS_RETURN(0);
 //    }
+//
 // Revision History:
+//    3.4.3  - dgb - Updated compiler checks to work with MS VS 2019
 //    3.4.0  - Added CDesignChecker waivers/fixes for ac_dsp IP blocks.
 //             Changes made in general:
 //               - CNS and UMR violations were waived away.
@@ -76,8 +78,13 @@
 
 // The default constructors required by CDesignChecker mean that the C++ standard used for compilation should be C++11 or
 // later, failing which CDesignChecker will throw an error.
-#if defined(SLEC_CDESCHECK) && !(__cplusplus >= 201103L)
+#if defined(SLEC_CDESCHECK)
+#if (defined(__GNUC__) && (__cplusplus < 201103L))
 #error Please use C++11 or a later standard for compilation, if you intend on using CDesignChecker.
+#endif
+#if (defined(_MSC_VER) && (_MSC_VER < 1920) && !defined(__EDG__))
+#error Please use Microsoft VS 2019 or a later standard for compilation, if you intend on using CDesignChecker.
+#endif
 #endif
 
 #include <ac_fixed.h>
