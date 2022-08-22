@@ -4,9 +4,9 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Wed May  4 10:47:29 PDT 2022                        *
+ *  Release Date    : Wed Aug 17 19:00:33 PDT 2022                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.3                                               *
+ *  Release Build   : 3.4.4                                               *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -111,6 +111,9 @@
 #include <ac_assert.h>
 #endif
 
+#define PIPE 1
+
+
 // The coverAssert function uses the static_assert() function, which is only supported by C++11 or later
 // compiler standards. Hence, the user should be informed if they have defined COVER_ON but not used
 // C++11 or a later compiler standard.
@@ -195,7 +198,7 @@ private:
 
         twid_add = ((1 << (logRad - 1)) - 1) & (B_count << (logRad - Rstage - 1));
 
-#pragma hls_waive CNS
+        #pragma hls_waive CNS
         switch (RADX) {
           case 2:
             Rw = Rtw0[twid_add];
@@ -374,7 +377,6 @@ public:
 
     ac_fft_dif_r2pX_inpl_butterfly < N_FFT, RADIX, dType, cx_dType, cx_dround, cx_b_dround, cx_mType, cx_tType > btrfly;
 
-#pragma hls_pipeline_init_interval 3
     STAGE_LOOP: for (int i = Nstage - 1; i >= 0; i--) {
       bank_add_gen = 0;
       n2 = n1;
@@ -384,111 +386,134 @@ public:
 
         BUTTERFLY_LOOP: for (int kk = 0; kk < N_FFT / RADIX; kk++) {
 
+
+// PIPE LOOP to REDUCE the COMPLEXITY PER LOOP.
+// If STAGE LOOP is scheduled at II=3, this loop can be disabled, else for II =1 SCverify RTL mismatch, enable this loop using PIPE directive. 
+          #ifdef	PIPE
+          PIPELOOP: for (int pl=0; pl<=2; pl++) {
+            if (pl==0) {
+          #endif
+
 #pragma unroll yes
-          BANK_ADD_GENERATOR: for (ac_int < logRad + 1, 0 > m = 0; m < RADIX; m++) {
-            ac_int < logRad, 0 > m_no_msb = 0;
-            xadd = 0;
-            m_no_msb = m;
+              BANK_ADD_GENERATOR: for (ac_int < logRad + 1, 0 > m = 0; m < RADIX; m++) {
+                ac_int < logRad, 0 > m_no_msb = 0;
+                xadd = 0;
+                m_no_msb = m;
 #pragma unroll yes
-            BANK_ADD_GEN_NEST: for (int slc_j = logN - logRad; slc_j >= 0; slc_j -= logRad) {
-              if (slc_j >= (i * logRad)) {
-                xadd.set_slc(slc_j, m_no_msb);
+                BANK_ADD_GEN_NEST: for (int slc_j = logN - logRad; slc_j >= 0; slc_j -= logRad) {
+                  if (slc_j >= (i * logRad)) {
+                    xadd.set_slc(slc_j, m_no_msb);
+                  }
+                }
+                id_bank[m] = fix_zero_wire_wdth & (bank_add_gen ^ xadd);
               }
+
+              #ifdef	PIPE
+            } else if (pl==1) {
+              #endif
+#pragma unroll yes
+              DATA_FETCH_FROM_BANKS: for (int mn = 0; mn < RADIX; mn++) {
+                #pragma hls_waive ABR
+                int bank_add_fet = mn ^ (bank_add_gen.template slc < logRad > (i * logRad));
+                fet_id_data = id_bank[mn] & ((N_FFT / RADIX) - 1);
+                data[bank_add_fet] = bank[mn][fet_id_data];
+              }
+              ac_int < (logN + 1), false > n, n_vac[RADIX];
+              n = (j * idx);
+
+
+#pragma unroll yes
+              BITREVERCE_TWIDDLE_ADDRESS: for (ac_int < logRad + 1, 0 > n_itr = 0; n_itr < RADIX; n_itr++) {
+                ac_int < logRad, 0 > n_nmsb = n_itr;
+                n_nmsb = bitrevint(n_nmsb);
+                if ((i == Nstage - 1) && (RADIX_R != 0)) {
+                  n_vac[n_nmsb] = (n_itr >> RADIX_R) * (n + ((n_nmsb >> (logRad - RADIX_R)) * (N_FFT / RADIX)));
+                } else {
+                  n_vac[n_nmsb] = (n_itr * n) >> RADIX_R;
+                }
+
+              }
+              cx_tType J = comx_twiddle (0.0, 1.0);
+
+              tw_vac[0] = comx_twiddle (1.0, 0.0);
+
+#pragma unroll yes
+              TWIDDLE_VAC_GEN: for (ac_int < logRad + 1, 0 > tw_itr = 1; tw_itr < RADIX; tw_itr++) {
+                ac_int < logN, false > t;
+                n = n_vac[tw_itr];
+                t = (1 & ((n << 2) >> (logN_a - 1))) ? (ac_int < (logN_a - 1) + 1, false >) ((((1 << (logN_a - 1)) >> 2)) - (n & ((((1 << (logN_a - 1)) >> 2)) - 1))) : (ac_int < (logN_a - 1) + 1, false >) (n & ((((1 << (logN_a - 1)) >> 2)) - 1));
+
+                #pragma hls_waive CNS
+                switch (logN_a) {
+                  case 1:
+                    twd = twiddle_0[t];
+                    break;
+                  case 2:
+                    twd = twiddle_1[t];
+                    break;
+                  case 3:
+                    twd = twiddle_2[t];
+                    break;
+                  case 4:
+                    twd = twiddle_3[t];
+                    break;
+                  case 5:
+                    twd = twiddle_4[t];
+                    break;
+                  case 6:
+                    twd = twiddle_5[t];
+                    break;
+                  case 7:
+                    twd = twiddle_6[t];
+                    break;
+                  case 8:
+                    twd = twiddle_7[t];
+                    break;
+                  case 9:
+                    twd = twiddle_8[t];
+                    break;
+                  case 10:
+                    twd = twiddle_9[t];
+                    break;
+                  case 11:
+                    twd = twiddle_10[t];
+                    break;
+                  case 12:
+                    twd = twiddle_11[t];
+                    break;
+                  case 13:
+                    twd = twiddle_12[t];
+                    break;
+                }
+                tw.r() = ((1 & ((n << 2) >> (logN_a - 1))) | (1 & ((n << 1) >> (logN_a - 1)))) ? (tType) (-twd.r()) : (tType) (twd.r());
+                tw.i() = ((!(1 & ((n << 2) >> (logN_a - 1)))) | (1 & ((n << 1) >> (logN_a - 1)))) ? (tType) (twd.i()) : (tType) (-twd.i());
+                tw = ((1 & ((n << 2) >> (logN_a - 1))) ^ (1 & ((n << 1) >> (logN_a - 1)))) && ((logN_a - 1) >= 2) ? (cx_tType) (J * tw.conj ()) : (cx_tType) tw;
+                tw = n[logN_a - 1] ? (cx_tType) (-tw) : (cx_tType) (tw);
+                tw_vac[tw_itr] = tw;
+              }
+
+              // Note: this design is hard-coded to scale all outputs by 1/2. If you do not want that to happen, substitute the "N_FFT - 1" in the equation below with an
+              // integer whose bit pattern encodes the scaling of all stages, where the LSB is scaling of the output stage and MSB is scaling of the input stage.
+              btrfly.compute (i - Nstage + 1, data, tw_vac, ((RADIX - 1) & (((N_FFT - 1) << RADIX_R) >> ((Nstage - 1 - i) * logRad))));
+
+
+              #ifdef	PIPE
+            } else if (pl==2) {
+              #endif
+
+#pragma unroll yes
+              PUTTING_DATA_IN_BANKS: for (int amn = 0; amn < RADIX; amn++) {
+                cur_id_bank = id_bank[amn] & ((N_FFT / RADIX) - 1);
+                #pragma hls_waive ABR
+                int data_add = amn ^ (bank_add_gen.template slc < logRad > (i > 0 ? (i - 1) * logRad : logN));
+                bank[amn][cur_id_bank] = data[data_add];
+              }
+
+              #ifdef	PIPE
             }
-            id_bank[m] = fix_zero_wire_wdth & (bank_add_gen ^ xadd);
-          }
+          } //Pipe Loop ends here
+              #endif
 
-#pragma unroll yes
-          DATA_FETCH_FROM_BANKS: for (int mn = 0; mn < RADIX; mn++) {
-#pragma hls_waive ABR
-            int bank_add_fet = mn ^ (bank_add_gen.template slc < logRad > (i * logRad));
-            fet_id_data = id_bank[mn] & ((N_FFT / RADIX) - 1);
-            data[bank_add_fet] = bank[mn][fet_id_data];
-          }
-          ac_int < (logN + 1), false > n, n_vac[RADIX];
-          n = (j * idx);
-
-#pragma unroll yes
-          BITREVERCE_TWIDDLE_ADDRESS: for (ac_int < logRad + 1, 0 > n_itr = 0; n_itr < RADIX; n_itr++) {
-            ac_int < logRad, 0 > n_nmsb = n_itr;
-            n_nmsb = bitrevint(n_nmsb);
-            if ((i == Nstage - 1) && (RADIX_R != 0)) {
-              n_vac[n_nmsb] = (n_itr >> RADIX_R) * (n + ((n_nmsb >> (logRad - RADIX_R)) * (N_FFT / RADIX)));
-            } else {
-              n_vac[n_nmsb] = (n_itr * n) >> RADIX_R;
-            }
-
-          }
-          cx_tType J = comx_twiddle (0.0, 1.0);
-
-          tw_vac[0] = comx_twiddle (1.0, 0.0);
-
-#pragma unroll yes
-          TWIDDLE_VAC_GEN: for (ac_int < logRad + 1, 0 > tw_itr = 1; tw_itr < RADIX; tw_itr++) {
-            ac_int < logN, false > t;
-            n = n_vac[tw_itr];
-            t = (1 & ((n << 2) >> (logN_a - 1))) ? (ac_int < (logN_a - 1) + 1, false >) ((((1 << (logN_a - 1)) >> 2)) - (n & ((((1 << (logN_a - 1)) >> 2)) - 1))) : (ac_int < (logN_a - 1) + 1, false >) (n & ((((1 << (logN_a - 1)) >> 2)) - 1));
-
-#pragma hls_waive CNS
-            switch (logN_a) {
-              case 1:
-                twd = twiddle_0[t];
-                break;
-              case 2:
-                twd = twiddle_1[t];
-                break;
-              case 3:
-                twd = twiddle_2[t];
-                break;
-              case 4:
-                twd = twiddle_3[t];
-                break;
-              case 5:
-                twd = twiddle_4[t];
-                break;
-              case 6:
-                twd = twiddle_5[t];
-                break;
-              case 7:
-                twd = twiddle_6[t];
-                break;
-              case 8:
-                twd = twiddle_7[t];
-                break;
-              case 9:
-                twd = twiddle_8[t];
-                break;
-              case 10:
-                twd = twiddle_9[t];
-                break;
-              case 11:
-                twd = twiddle_10[t];
-                break;
-              case 12:
-                twd = twiddle_11[t];
-                break;
-              case 13:
-                twd = twiddle_12[t];
-                break;
-            }
-            tw.r() = ((1 & ((n << 2) >> (logN_a - 1))) | (1 & ((n << 1) >> (logN_a - 1)))) ? (tType) (-twd.r()) : (tType) (twd.r());
-            tw.i() = ((!(1 & ((n << 2) >> (logN_a - 1)))) | (1 & ((n << 1) >> (logN_a - 1)))) ? (tType) (twd.i()) : (tType) (-twd.i());
-            tw = ((1 & ((n << 2) >> (logN_a - 1))) ^ (1 & ((n << 1) >> (logN_a - 1)))) && ((logN_a - 1) >= 2) ? (cx_tType) (J * tw.conj ()) : (cx_tType) tw;
-            tw = n[logN_a - 1] ? (cx_tType) (-tw) : (cx_tType) (tw);
-            tw_vac[tw_itr] = tw;
-          }
-
-          // Note: this design is hard-coded to scale all outputs by 1/2. If you do not want that to happen, substitute the "N_FFT - 1" in the equation below with an
-          // integer whose bit pattern encodes the scaling of all stages, where the LSB is scaling of the output stage and MSB is scaling of the input stage.
-          btrfly.compute (i - Nstage + 1, data, tw_vac, ((RADIX - 1) & (((N_FFT - 1) << RADIX_R) >> ((Nstage - 1 - i) * logRad))));
-
-#pragma unroll yes
-          PUTTING_DATA_IN_BANKS: for (int amn = 0; amn < RADIX; amn++) {
-            cur_id_bank = id_bank[amn] & ((N_FFT / RADIX) - 1);
-#pragma hls_waive ABR
-            int data_add = amn ^ (bank_add_gen.template slc < logRad > (i > 0 ? (i - 1) * logRad : logN));
-            bank[amn][cur_id_bank] = data[data_add];
-          }
           k += n2.to_int();
           bank_add_gen += (1 << ((i) * logRad));
 
@@ -505,7 +530,7 @@ public:
       idx <<= logRad;
     }
   }
-  
+
 private:
   typedef ac_fixed < TWID_PREC, 2, true, AC_RND_INF > tType;
   typedef ac_complex < tType > cx_tType;
@@ -536,7 +561,7 @@ public:
   // Member Function: run
   // Description: the top-level interface to the FFT.
   //
-#pragma hls_design interface
+  #pragma hls_design interface
   void CCS_BLOCK(run)(ac_channel < dif_input > &inst, ac_channel < dif_output > &outst) {
     coverAssert();
     const int logN = ac::log2_ceil < N_FFT >::val;
@@ -545,7 +570,7 @@ public:
     const ac_int < logN - logRad + 1, 0 > fix_zero_wire_wdth = ((1 << (logN - logRad)) - 1);
     const int RADIX_R = (logRad - mixR) % logRad;
 
-#pragma hls_pipeline_init_interval 1
+    #pragma hls_pipeline_init_interval 1
     INPUT_LOOP: for (int k = 0; k < RADIX; k++) {
 
       INPUT_LOOP_ADDRESSING: for (int j = 0; j < N_FFT / RADIX; j++) {
@@ -562,10 +587,10 @@ public:
     ac_int < logN - logRad + 1, 0 > mem_intr, mem_add;
     ac_int < logRad, 0 > m_no_msb = 0, bank_add;
 
-#pragma hls_waive CNS
+    #pragma hls_waive CNS
     if (ORDER == 1) {
       // This loop Generates Addresses to Fetch Output in Natural Order
-#pragma hls_pipeline_init_interval 1
+      #pragma hls_pipeline_init_interval 1
       OUTPUT_LOOP_NATURAL: for (int m = 0; m < RADIX; m++) {
         m_no_msb = m;
         bank_add = fft.bitrevint(m_no_msb);
@@ -584,7 +609,7 @@ public:
       }
     } else {
       // This loop Generates Addresses to Fetch Output in Bit-reversed Order
-#pragma hls_pipeline_init_interval 1
+      #pragma hls_pipeline_init_interval 1
       OUTPUT_LOOP_BITREVERSE: for (int i = 0; i < N_FFT / RADIX; i++) {
         OUTPUT_LOOP_BITREVERSE_ADDRESS: for (int m = 0; m < RADIX; m++) {
           m_no_msb = m;
@@ -609,25 +634,25 @@ public:
 
   //-------------------------------------------------------------------------
   // Member Function: coverAssert
-  // Description: used for basic template assert condition. This helps to 
+  // Description: used for basic template assert condition. This helps to
   // validate if object of this class created by the user has right set of
   // parameters defined for it. Code will assert during compile-time if incorrect
   // template values are used.
   //
   void coverAssert () {
-#ifdef ASSERT_ON
+    #ifdef ASSERT_ON
     static_assert(N_FFT == 2   || N_FFT == 4   || N_FFT == 8    || N_FFT == 16   || N_FFT == 32   || N_FFT == 64 || N_FFT == 128 ||
                   N_FFT == 256 || N_FFT == 512 || N_FFT == 1024 || N_FFT == 2048 || N_FFT == 4096, "N_FFT is not a power of two");
     static_assert(RADIX == 2 || RADIX == 4 || RADIX == 8 || RADIX == 16 || RADIX == 32 || RADIX == 64 || RADIX == 128, "Radix Value not supported");
     static_assert(TWID_PREC <= 32, "Twiddle bitwidth greater than 32");
     static_assert(TWID_PREC >= 2,  "Twiddle bitwidth lesser than 2");
     static_assert(DIF_D_P >= DIF_D_I,  "Stage integer width lesser than bitwidth");
-#endif
-#ifdef COVER_ON
+    #endif
+    #ifdef COVER_ON
     cover (TWID_PREC <= 5);
-#endif
+    #endif
   }
-  
+
 private:
   ac_fft_dif_r2pX_inpl_core < N_FFT, RADIX, ORDER, TWID_PREC, DIF_D_P, DIF_D_I > fft;
   dif_input bank[RADIX][N_FFT / RADIX];
