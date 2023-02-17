@@ -4,9 +4,9 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Thu Nov 17 21:43:31 PST 2022                        *
+ *  Release Date    : Mon Feb  6 09:12:03 PST 2023                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.5                                               *
+ *  Release Build   : 3.4.6                                               *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -143,7 +143,7 @@ public:
     int index = 0;
     BLK: for ( int i = 0; i < N_TAPS; i+= BLK_SZ, ram_addr+= MEM_WORD_WIDTH )  {
       index = 0;
-#pragma unroll yes
+#pragma hls_unroll yes
       MAC: for ( int block_count = BLK_OFFSET; block_count < (BLK_OFFSET + BLK_SZ); block_count ++) {
 #pragma hls_waive ABR
         acc += (reg[i + index]) * coeffs[ram_addr + block_count];
@@ -164,7 +164,7 @@ public:
     int index = 0;
     BLK: for ( int i = 0; i < N_TAPS/2; i+= BLK_SZ, ram_addr+= MEM_WORD_WIDTH )  {
       index = 0;
-#pragma unroll yes
+#pragma hls_unroll yes
       MAC: for ( int block_count = BLK_OFFSET; block_count < (BLK_OFFSET + BLK_SZ); block_count ++) {
 #pragma hls_waive ABR
         acc += (reg[i + index] + reg[N_TAPS - 1 - i - index] ) * coeffs[ram_addr + block_count];
@@ -185,7 +185,7 @@ public:
     int index = 0;
     BLK: for ( int i = 0; i < N_TAPS/2; i+= BLK_SZ, ram_addr+= MEM_WORD_WIDTH )  {
       index = 0;
-#pragma unroll yes
+#pragma hls_unroll yes
       MAC: for ( int block_count = BLK_OFFSET; block_count < (BLK_OFFSET + BLK_SZ); block_count ++) {
 #pragma hls_waive ABR
         acc += (reg[i + index] - reg[N_TAPS - 1 - i - index] ) * coeffs[ram_addr + block_count];
@@ -207,7 +207,7 @@ public:
     int index = 0;
     BLK: for (int i = 0; i < (((N_TAPS - 1) / 2) + 1); i+= BLK_SZ, ram_addr+= MEM_WORD_WIDTH) {
       index = 0;
-#pragma unroll yes
+#pragma hls_unroll yes
       MAC: for ( int block_count = BLK_OFFSET; block_count < (BLK_OFFSET + BLK_SZ); block_count ++) {
         if ((i + index)  == (N_TAPS - 1) / 2)
         { fold = ACC_TYPE(reg[i + index]); }                      // Central passes through
@@ -232,7 +232,7 @@ public:
     int index = 0;
     BLK: for (int i = 0; i < (((N_TAPS - 1) / 2) + 1); i+= BLK_SZ, ram_addr+= MEM_WORD_WIDTH) {
       index = 0;
-#pragma unroll yes
+#pragma hls_unroll yes
       MAC: for ( int block_count = BLK_OFFSET; block_count < (BLK_OFFSET + BLK_SZ); block_count ++) {
         if ((i + index)  == (N_TAPS - 1) / 2)
         { fold = ACC_TYPE(reg[i + index]); }                      // Central passes through

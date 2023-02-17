@@ -4,9 +4,9 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Thu Nov 17 21:43:31 PST 2022                        *
+ *  Release Date    : Mon Feb  6 09:12:03 PST 2023                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.5                                               *
+ *  Release Build   : 3.4.6                                               *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -78,7 +78,7 @@ private:
 // Description: Implements integrators for number of stages configured 
 //
   void intStage(OUT_TYPE data_in, OUT_TYPE &data_out) {
-#pragma unroll yes
+#pragma hls_unroll yes
     INTG_STG: for (int i = N_ - 1; i > 0; i--) {
       intg_reg[i] = intg_reg[i] + intg_reg[i - 1];
     }
@@ -228,7 +228,7 @@ private: // Data
   void comb(OUT_TYPE data_in, OUT_TYPE &data_out) {
     OUT_TYPE data_in_comb_stg;
     OUT_TYPE data_out_comb_stg;
-#pragma unroll yes
+#pragma hls_unroll yes
     COMB: for (int i = 0; i < N_; i++) {
       if (i == 0) {
         data_in_comb_stg = data_in;           // for first diff stage input is the data input
@@ -245,7 +245,7 @@ private: // Data
 //
   void diffStage(OUT_TYPE data_in, ac_int < 8, false > k, OUT_TYPE &data_out) {
     data_out = data_in - comb_dly_ln[k][M_ - 1];
-#pragma unroll yes
+#pragma hls_unroll yes
     COMB_B: for (int i = 0; i < M_; i++) {
       if (i != 0) {
         comb_dly_ln[k][i] = comb_dly_ln[k][i - 1];

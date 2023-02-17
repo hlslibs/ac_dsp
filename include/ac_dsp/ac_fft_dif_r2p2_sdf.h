@@ -4,9 +4,9 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Thu Nov 17 21:43:31 PST 2022                        *
+ *  Release Date    : Mon Feb  6 09:12:03 PST 2023                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.5                                               *
+ *  Release Build   : 3.4.6                                               *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -302,7 +302,7 @@ private:
   //
   void writeMem(complex_rnd_ext &in) {
     if ((1 << STAGE) < (MEM_TH)) {
-#pragma unroll yes
+#pragma hls_unroll yes
       for (int i = (1 << STAGE) - 1; i > 0; i--) {
 #pragma hls_waive UMR
         shift_reg[i] = shift_reg[i - 1];

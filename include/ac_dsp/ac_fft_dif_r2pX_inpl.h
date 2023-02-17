@@ -4,9 +4,9 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Thu Nov 17 21:43:31 PST 2022                        *
+ *  Release Date    : Mon Feb  6 09:12:03 PST 2023                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.5                                               *
+ *  Release Build   : 3.4.6                                               *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -154,7 +154,7 @@ public:
     complex_round tmp_out;
     com_tw tw[RADX];
 
-#pragma unroll yes
+#pragma hls_unroll yes
     TWIDDLE_ROUNDING_LOOP: for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
       xt[rad_itr] = x[rad_itr];
       tw[rad_itr] = (com_tw) w[rad_itr];
@@ -163,7 +163,7 @@ public:
     fft_dif_r2pX_inpl_radix_butterfly (stage_n, xt, scale_fac);
     multRescale (xt, tw, scale_fac);
 
-#pragma unroll yes
+#pragma hls_unroll yes
     OUTPUT_ASSINGMENT_LOOP: for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
       x[rad_itr] = xt[rad_itr];
     }
@@ -183,16 +183,16 @@ private:
 
 #include "twiddlesR_64bits.h"
 
-#pragma unroll yes
+#pragma hls_unroll yes
     RADIX_STAGE_LOOP: for (int Rstage = logRad - 1; Rstage >= 0; Rstage--) {
       com_rnd_ext a[RADX];
 
-#pragma unroll yes
+#pragma hls_unroll yes
       INPUT_REG_LOOP: for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
         a[rad_itr] = x[rad_itr];
       }
 
-#pragma unroll yes
+#pragma hls_unroll yes
       RADIX_BUTTERFLY_LOOP: for (ac_int < logRad, 0 > B_count = 0; B_count < RADX / 2; B_count++) {
         ac_int < logRad, 0 > addrs1, addrs2, twid_add;
 
@@ -223,7 +223,7 @@ private:
             break;
         }
 
-#pragma unroll yes
+#pragma hls_unroll yes
         RADIX_ADD_GEN_LOOP: for (int bit_count = 0; bit_count < logRad; bit_count++) {
           if (bit_count < Rstage) {
             addrs1[bit_count] = B_count[bit_count];
@@ -259,7 +259,7 @@ private:
         x[addrs1] = (complex_round) (x[addrs1]);
       }
 
-#pragma unroll yes
+#pragma hls_unroll yes
       RESCALE_LOOP: for (int rad_itr = 0; rad_itr < RADX; rad_itr++) {
         com_rnd_ext temp;
 
@@ -288,7 +288,7 @@ private:
     complex_round temp;
     bool ch_scale = 1 & (scale_fac >> (logRad - 1));;
 
-#pragma unroll yes
+#pragma hls_unroll yes
     TWIDDLE_MULT_LOOP: for (int rad_itr = 1; rad_itr < RADX; rad_itr++) {
       a[rad_itr] = x[rad_itr];
       b[rad_itr] = y[rad_itr];
@@ -334,7 +334,7 @@ public:
   template < int a > ac_int < a, 0 > bitrevint (ac_int < a, 0 > &Num) {
     ac_int < a, 0 > Num_br;
 
-#pragma unroll yes
+#pragma hls_unroll yes
     BITREVERSAL_CORE: for (ac_int < a + 1, 0 > itrator = 0; itrator < a; itrator++) {
       Num_br[a - 1 - itrator] = Num[itrator];
     }
@@ -394,12 +394,12 @@ public:
             if (pl==0) {
           #endif
 
-#pragma unroll yes
+#pragma hls_unroll yes
               BANK_ADD_GENERATOR: for (ac_int < logRad + 1, 0 > m = 0; m < RADIX; m++) {
                 ac_int < logRad, 0 > m_no_msb = 0;
                 xadd = 0;
                 m_no_msb = m;
-#pragma unroll yes
+#pragma hls_unroll yes
                 BANK_ADD_GEN_NEST: for (int slc_j = logN - logRad; slc_j >= 0; slc_j -= logRad) {
                   if (slc_j >= (i * logRad)) {
                     xadd.set_slc(slc_j, m_no_msb);
@@ -411,7 +411,7 @@ public:
               #ifdef	PIPE
             } else if (pl==1) {
               #endif
-#pragma unroll yes
+#pragma hls_unroll yes
               DATA_FETCH_FROM_BANKS: for (int mn = 0; mn < RADIX; mn++) {
                 #pragma hls_waive ABR
                 int bank_add_fet = mn ^ (bank_add_gen.template slc < logRad > (i * logRad));
@@ -422,7 +422,7 @@ public:
               n = (j * idx);
 
 
-#pragma unroll yes
+#pragma hls_unroll yes
               BITREVERCE_TWIDDLE_ADDRESS: for (ac_int < logRad + 1, 0 > n_itr = 0; n_itr < RADIX; n_itr++) {
                 ac_int < logRad, 0 > n_nmsb = n_itr;
                 n_nmsb = bitrevint(n_nmsb);
@@ -437,7 +437,7 @@ public:
 
               tw_vac[0] = comx_twiddle (1.0, 0.0);
 
-#pragma unroll yes
+#pragma hls_unroll yes
               TWIDDLE_VAC_GEN: for (ac_int < logRad + 1, 0 > tw_itr = 1; tw_itr < RADIX; tw_itr++) {
                 ac_int < logN, false > t;
                 n = n_vac[tw_itr];
@@ -501,7 +501,7 @@ public:
             } else if (pl==2) {
               #endif
 
-#pragma unroll yes
+#pragma hls_unroll yes
               PUTTING_DATA_IN_BANKS: for (int amn = 0; amn < RADIX; amn++) {
                 cur_id_bank = id_bank[amn] & ((N_FFT / RADIX) - 1);
                 #pragma hls_waive ABR
@@ -596,7 +596,7 @@ public:
         bank_add = fft.bitrevint(m_no_msb);
         m_no_msb = bank_add;
         OUTPUT_LOOP_NATURAL_ADDRESS: for (int i = 0; i < N_FFT / RADIX; i++) {
-#pragma unroll yes
+#pragma hls_unroll yes
           OUTPUT_LOOP_NATURAL_SLICE: for (int p = 0; p <= (logN - logRad); p = (p + logRad)) {
             out_add.set_slc (p, m_no_msb);
           }
@@ -613,7 +613,7 @@ public:
       OUTPUT_LOOP_BITREVERSE: for (int i = 0; i < N_FFT / RADIX; i++) {
         OUTPUT_LOOP_BITREVERSE_ADDRESS: for (int m = 0; m < RADIX; m++) {
           m_no_msb = m;
-#pragma unroll yes
+#pragma hls_unroll yes
           OUTPUT_LOOP_BITREVERSE_SLICE: for (int p = 0; p <= (logN - logRad); p = (p + logRad)) {
             out_add.set_slc (p, m_no_msb);
           }
@@ -667,7 +667,7 @@ private:
 
     ac_int < n, 0 > output;
     ac_int < logn + 1, 0 > ckr;
-#pragma unroll yes
+#pragma hls_unroll yes
     CIRCULAR_SHIFT: for (ac_int < logn + 1, 0 > itr = 0; itr < n; itr++) {
       ckr = (itr + shft) % n;
       output[itr] = input[ckr];

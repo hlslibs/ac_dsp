@@ -4,9 +4,9 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Thu Nov 17 21:43:31 PST 2022                        *
+ *  Release Date    : Mon Feb  6 09:12:03 PST 2023                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.5                                               *
+ *  Release Build   : 3.4.6                                               *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -111,11 +111,11 @@ public: // Functions
 #endif
     {
       DF: for (int df = DF - 1; df >= 0; df--) {
-#pragma unroll
+#pragma hls_unroll
         SHIFT: for (int i = NTAPS * DF - 1; i >= 0; i--) {
           taps[i] = (i == 0) ? data_in.read() : taps[i - 1];
         }
-#pragma unroll
+#pragma hls_unroll
         MAC: for (int tp = 0; tp < NTAPS; tp++) {
           int tap_index = tp + NTAPS * df;
           acc1[df] = acc1[df] + taps[tp * DF] * coeffs_t.coeffs[tap_index];

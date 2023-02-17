@@ -4,9 +4,9 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Thu Nov 17 21:43:31 PST 2022                        *
+ *  Release Date    : Mon Feb  6 09:12:03 PST 2023                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.5                                               *
+ *  Release Build   : 3.4.6                                               *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -281,7 +281,7 @@ public:
   void firConstCoeffsTransposed(IN_TYPE &data_in, OUT_TYPE &data_out) {
     ACC_TYPE temp = 0.0;
     IN_TYPE in = data_in;
-#pragma unroll yes
+#pragma hls_unroll yes
     MAC:
     for (int i = (N_TAPS - 1); i >= 0; i--) {
       if (i == 0) {
@@ -317,7 +317,6 @@ public:
 // Member Function: run()
 // Description: run() is top function for C++ module.
 
-#pragma hls_pipeline_init_interval 1
 #pragma hls_design interface
   void CCS_BLOCK(run)(ac_channel < IN_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out) {
     IN_TYPE core_in;

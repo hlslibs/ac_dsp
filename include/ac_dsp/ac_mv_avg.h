@@ -4,9 +4,9 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Thu Nov 17 21:43:31 PST 2022                        *
+ *  Release Date    : Mon Feb  6 09:12:03 PST 2023                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.5                                               *
+ *  Release Build   : 3.4.6                                               *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -112,7 +112,7 @@ public: // Functions
     w.write(data_in, sol, eol);
     valid = w.valid();
     if (w.valid()) {
-#pragma unroll
+#pragma hls_unroll
       ACC: for (int j = -TAPS / 2; j <= TAPS / 2; j++) {
 #pragma hls_waive ABR
         acc_reg = acc_reg + (ACC_TYPE) w[j] * coeffs[j + (TAPS / 2)]; /* Accumulator */

@@ -4,9 +4,9 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Thu Nov 17 21:43:31 PST 2022                        *
+ *  Release Date    : Mon Feb  6 09:12:03 PST 2023                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.5                                               *
+ *  Release Build   : 3.4.6                                               *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -265,7 +265,7 @@ public: // Functions
   void firLoadCoeffsTransposed(IN_TYPE &data_in, COEFF_TYPE h[N_TAPS], OUT_TYPE &data_out) {
     ACC_TYPE temp = 0.0;
     IN_TYPE in = data_in;
-#pragma unroll yes
+#pragma hls_unroll yes
     MAC:
     for (int i = (N_TAPS - 1); i >= 0; i--) {
       if (i == 0)

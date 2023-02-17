@@ -4,9 +4,9 @@
  *                                                                        *
  *  Software Version: 3.4                                                 *
  *                                                                        *
- *  Release Date    : Thu Nov 17 21:43:31 PST 2022                        *
+ *  Release Date    : Mon Feb  6 09:12:03 PST 2023                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.5                                               *
+ *  Release Build   : 3.4.6                                               *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -124,7 +124,7 @@ public: // Functions
 // Description: ac_polyIntrSymmetricEvenTaps() implements a symmetric filter with even number of Taps
 //
   void ac_polyIntrSymmetricEvenTaps ( ac_channel < IN_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out, COEFF_TYPE coeffs[COEFFSZ], bool sign[IF], ac_int < 8, false > corr[IF]) {
-#pragma unroll
+#pragma hls_unroll
     SHIFT_REG: for (int i = (NTAPS - 1); i >= 1; i--) {
       taps[i] = taps[i - 1];
     }
@@ -135,7 +135,7 @@ public: // Functions
       }
       ACC_TYPE fold, acc;
       acc = 0.0;
-#pragma unroll
+#pragma hls_unroll
       MAC_E: for (int i = (NTAPS / 2) - 1; i >= 0; i--) {
         IN_TYPE tp;
         if (sign[j]) {                                      // sign specifies whether filter is symmetric or anti-symmetric
@@ -177,7 +177,7 @@ public: // Functions
 // Description: ac_polyIntrSymmetricOddTaps() implements a symmetric filter with even number of Taps
 //
   void ac_polyIntrSymmetricOddTaps ( ac_channel < IN_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out, COEFF_TYPE coeffs[COEFFSZ], bool sign[IF], ac_int < 8, false > corr[IF]) {
-#pragma unroll
+#pragma hls_unroll
     SHIFT_REG: for (int i = (NTAPS - 1); i >= 1; i--) {
       taps[i] = taps[i - 1];
     }
@@ -188,7 +188,7 @@ public: // Functions
       }
       ACC_TYPE fold, acc;
       acc = 0.0;
-#pragma unroll
+#pragma hls_unroll
       MAC_O: for (int i = 0; i < (((NTAPS - 1) / 2) + 1); i++) {
         if (i == (NTAPS - 1) / 2) {
           fold = taps[i]; // Central tap passes through for odd symmetric*/
@@ -236,7 +236,7 @@ public: // Functions
 // Description: ac_polyIntrAntiSymmetric() implements a symmetric filter with even number of Taps  
 //
   void ac_polyIntrAntiSymmetric ( ac_channel < IN_TYPE > &data_in, ac_channel < OUT_TYPE > &data_out, COEFF_TYPE coeffs[COEFFSZ], bool sign[IF], ac_int < 8, false > corr[IF]) {
-#pragma unroll
+#pragma hls_unroll
     SHIFT_REG: for (int i = (NTAPS - 1); i >= 1; i--) {
       taps[i] = taps[i - 1];
     }
@@ -247,7 +247,7 @@ public: // Functions
       }
       ACC_TYPE fold, acc;
       acc = 0.0;
-#pragma unroll
+#pragma hls_unroll
       MAC_N: for (int i = (NTAPS - 1); i >= 0; i--) {
         acc += taps[i] * coeffs[i + NTAPS * j];
       }
