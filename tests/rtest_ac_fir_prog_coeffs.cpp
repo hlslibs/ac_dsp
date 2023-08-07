@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) Math Library                                       *
  *                                                                        *
- *  Software Version: 3.4                                                 *
+ *  Software Version: 3.5                                                 *
  *                                                                        *
- *  Release Date    : Mon Feb  6 09:12:03 PST 2023                        *
+ *  Release Date    : Sun Jul 23 16:34:46 PDT 2023                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.6                                               *
+ *  Release Build   : 3.5.0                                               *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -53,6 +53,8 @@ typedef ac_fixed < 64, 32, true, AC_TRN, AC_WRAP > OUT_TYPE;
 typedef ac_fixed < 23,  7, true, AC_TRN, AC_WRAP > COEFF_TYPE;
 typedef ac_fixed < 64, 32, true, AC_TRN, AC_WRAP > MAC_TYPE;
 
+const double PI_VALUE = 3.14159265358979323846;
+
 using namespace std;
 #define CW_CHECK_STREAM(istr, fname, desc) if (istr.fail()) { std::cerr << "Could not open " << desc << " file '" << fname << std::endl; return(-1); }
 
@@ -83,7 +85,7 @@ int main(int argc, char *argv[])
 
   for (int i = 0; i < n_inputs; i++) {
     // Mix sine waves with frequencies F1 and F2 to produce the mixed-tone input.
-    mix_tone_inputs[i] = sin(2*M_PI*F1*((double)i)/Fs) + sin(2*M_PI*F2*((double)i)/Fs);
+    mix_tone_inputs[i] = sin(2*PI_VALUE*F1*((double)i)/Fs) + sin(2*PI_VALUE*F2*((double)i)/Fs);
     // Store the maximum absolute value in the inputs, for use in normalization later.
     if (abs(mix_tone_inputs[i]) > input_abs_max) { input_abs_max = abs(mix_tone_inputs[i]); }
   }

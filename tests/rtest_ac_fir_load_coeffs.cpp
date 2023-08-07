@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) Math Library                                       *
  *                                                                        *
- *  Software Version: 3.4                                                 *
+ *  Software Version: 3.5                                                 *
  *                                                                        *
- *  Release Date    : Mon Feb  6 09:12:03 PST 2023                        *
+ *  Release Date    : Sun Jul 23 16:34:46 PDT 2023                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 3.4.6                                               *
+ *  Release Build   : 3.5.0                                               *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -65,6 +65,8 @@ const int  MAC_W = 64;
 const int  MAC_I = 32;
 const bool MAC_S = true;
 
+const double PI_VALUE = 3.14159265358979323846;
+
 // Declare types for input, output, coefficients and internal MAC variable
 typedef ac_fixed < IN_W, IN_I, IN_S, AC_TRN, AC_WRAP > IN_TYPE_TB;
 typedef ac_fixed < OUT_W, OUT_I, OUT_S, AC_TRN, AC_WRAP > OUT_TYPE_TB;
@@ -107,7 +109,7 @@ int main(int argc, char *argv[])
 
   for (int i = 0; i < n_inputs; i++) {
     // Mix sine waves with frequencies F1 and F2 to produce the mixed-tone input.
-    mix_tone_inputs[i] = sin(2*M_PI*F1*i/Fs) + sin(2*M_PI*F2*i/Fs);
+    mix_tone_inputs[i] = sin(2*PI_VALUE*F1*i/Fs) + sin(2*PI_VALUE*F2*i/Fs);
     // Store the maximum absolute value in the inputs, for use in normalization later.
     if (abs(mix_tone_inputs[i]) > input_abs_max) { input_abs_max = abs(mix_tone_inputs[i]); }
   }
