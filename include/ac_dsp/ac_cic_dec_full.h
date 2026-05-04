@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 2025.4                                              *
+ *  Software Version: 2026.1                                              *
  *                                                                        *
- *  Release Date    : Thu Dec 11 10:28:09 PST 2025                        *
+ *  Release Date    : Tue Feb 10 18:33:18 PST 2026                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 2025.4.1                                            *
+ *  Release Build   : 2026.1.0                                            *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
