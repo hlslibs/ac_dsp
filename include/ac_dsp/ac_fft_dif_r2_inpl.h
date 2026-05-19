@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 2026.1                                              *
+ *  Software Version: 2026.2                                              *
  *                                                                        *
- *  Release Date    : Wed Mar 11 20:43:09 PDT 2026                        *
+ *  Release Date    : Tue May 12 21:12:18 PDT 2026                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 2026.1.1                                            *
+ *  Release Build   : 2026.2.0                                            *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -338,12 +338,31 @@ private:
     data_u = swap_d ? data_l_tmp : data_u;
   }
 };
-
 //==================================================================================
-// Class: ac_fft_dif_r2_inpl
-// Description: Top-level class, instantiated by testbench.
-// HLS Interface: run()
-// Note: coverAssert() will be enabled if either macro COVER_ON/ASSERT_ON is defined
+// HDIP: ac_fft_dif_r2_inpl
+// Description:
+//  Implements Decimation-In-Frequency, Radix-2, Inplace Architecture FFT.
+//  In-place architecture is implemented by reading and writing data from
+//  two memory banks. The butterfly block uses a radix of 2.
+//
+// Nomenclature:
+//       ac_fft_dif_r2_inpl
+//               |  |   |
+//               |  |   --------- In-place Architecture
+//               |  ------------- Radix-2
+//               ---------------- Decimation in Frequency
+//
+// Order of Input/Output:
+//  Input  -- Natural
+//  Output -- Bit reversed
+//
+//
+// Configuration Parameters:
+//
+// * @tparam N_FFT           unsigned: Number of FFT points     
+// * @tparam TWIDDLE_PREC    integer: Twiddle bitwidth
+// * @tparam DIF_D_P         integer: I/O bitiwdth 
+// * @tparam DIF_D_I         integer: I/O integer width 
 //----------------------------------------------------------------------------------
 
 template < unsigned N_FFT, int TWIDDLE_PREC, int DIF_D_P, int DIF_D_I >

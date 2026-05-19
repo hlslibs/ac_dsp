@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 2026.1                                              *
+ *  Software Version: 2026.2                                              *
  *                                                                        *
- *  Release Date    : Wed Mar 11 20:43:09 PDT 2026                        *
+ *  Release Date    : Tue May 12 21:12:18 PDT 2026                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 2026.1.1                                            *
+ *  Release Build   : 2026.2.0                                            *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -631,10 +631,69 @@ private:
 };
 
 //==================================================================================
-// Class: ac_fft_dif_r2pX_bfp_inpl
+// HDIP: ac_fft_dif_r2pX_bfp_inpl
 // Description:
-// Top-level class of design, instantiated by testbench.
-// HLS Interface: run()
+//
+//  ac_fft_dif_r2pX_bfp_inpl is a C++ wrapper around a generic Core class
+//  (ac_fft_dif_r2pX_bfp_inpl_core). ac_fft_dif_r2pX_bfp_inpl_core instantiates
+//  butterfly objects and carries out FFT computation, while also fetching and writing
+//  data from memory banks.
+//
+//  ac_fft_dif_r2pX_bfp_inpl_butterfly implements a Radix-engine comprise.
+//  The butterfly output is scaled down by 1/2.
+//
+// Nomenclature:
+//       ac_fft_dif_r2pX_bfp_inpl
+//               |   |   |    |
+//               |   |   |    --- In-place Architecture
+//               |   |   -------- Block Floating Point
+//               |   ------------ Radix-2^x
+//               ---------------- Decimation in Frequency
+//
+// Architectural View:
+//
+//         +--------+          +--------------------------+          +--------+
+//         |        |          |                          |          |        | Output
+//  Input  | INPUT  |          |                          |          | OUTPUT +--------->
+//  -------> UNIT   | +-------->          RADIX N         +--------+ |  UNIT  | Stream
+//  Stream |        | |        |        BUTTERFLY         |        | |        | Scaling
+//         |        | |  +----->          ENGINE          +-----+  | |        +--------->
+//         |        | |  |     |                          |     |  | |        | Factor
+//         +---+----+ |  |  +-->                          +--+  |  | +---^----+
+//             |      |  |  |  |                          |  |  |  |     |
+//             |      |  |  |  +--------------------------+  |  |  |     |
+//             |      |  |  |                                |  |  |     |
+//             |      |  |  |                                |  |  |     |
+//             |      |  |  |                                |  |  |     |
+//             |      |  |  |   +-------------------------+  |  |  |     |
+//             |      |  |  +---+         BANK 1          <--+  |  |     |
+//             |      |  |      |                         |     |  |     |
+//             |      |  |      +-------------------------+     |  |     |
+//             |      |  |      +-------------------------+     |  |     |
+//             |      |  +------+         BANK 2          <-----+  |     |
+//             |      |         |                         |        |     |
+//             |      |         +-------------------------+        |     |
+//             |      |         +-------------------------+        |     |
+//             |      +---------+         BANK N          <--------+     |
+//             |                |                         |              |
+//             |                +------^-----------+------+              |
+//             |                       |           |                     |
+//             +-----------------------+           +---------------------+
+//
+// Order of Input/Output:
+//  Input  -- Natural
+//  Output -- if ORDER = 0 Bit reversed
+//                     = 1 Natural
+//
+// Configuration Parameters:
+//
+// * @tparam N_FFT           unsigned: Number of FFT points 
+// * @tparam RADIX          integer: Radix 
+// * @tparam ORDER           integer: Order of Input/Output     
+// * @tparam TWIDDLE_PREC    integer: Twiddle bitwidth
+// * @tparam DIF_D_P         integer: I/O bitiwdth 
+// * @tparam DIF_D_I         integer: I/O integer width 
+// * @tparam out_str         output string type   
 //----------------------------------------------------------------------------------
 
 template < unsigned N_FFT, int RADIX, int ORDER, int TWID_PREC, int DIF_D_P, int DIF_D_I, class out_str >

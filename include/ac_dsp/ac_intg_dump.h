@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 2026.1                                              *
+ *  Software Version: 2026.2                                              *
  *                                                                        *
- *  Release Date    : Wed Mar 11 20:43:09 PDT 2026                        *
+ *  Release Date    : Tue May 12 21:12:18 PDT 2026                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 2026.1.1                                            *
+ *  Release Build   : 2026.2.0                                            *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -104,8 +104,20 @@ public: // Functions
 };
  
 //===================================================================================================================
-// Class: ac_intg_dump
-// Description: This class contains the top functions which further class core functionality
+// HDIP: ac_intg_dump
+// Description: 
+// The filter is designed by using class based approach. This file is C wrapper over
+// core functionality of the filter. Member function of the class arun
+// is the top function for the C++ design.
+//
+//
+// Configuration Parameters:
+//
+// * @tparam IN_TYPE          input data type 
+// * @tparam ACC_TYPE         accumulator data type 
+// * @tparam OUT_TYPE         output data type 
+// * @tparam NS        integer: maximum number of samples that should be accumulated data_in a configuration
+// * @tparam CHN         integer: Number of channels configured
 //-------------------------------------------------------------------------------------------------------------------
 
 template < class IN_TYPE, class ACC_TYPE, class OUT_TYPE, class N_TYPE, int NS, int CHN >

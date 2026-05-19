@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 2026.1                                              *
+ *  Software Version: 2026.2                                              *
  *                                                                        *
- *  Release Date    : Wed Mar 11 20:43:09 PDT 2026                        *
+ *  Release Date    : Tue May 12 21:12:18 PDT 2026                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 2026.1.1                                            *
+ *  Release Build   : 2026.2.0                                            *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -486,10 +486,37 @@ private:
 };
 
 //==================================================================================
-// Class: ac_fft_dif_r2m2p2_sdf
-// Description: Top-level class, instantiated by testbench.
-// HLS Interface: run()
-// Note: coverAssert() will be enabled if either macro COVER_ON/ASSERT_ON is defined
+// HDIP: ac_fft_dif_r2m2p2_sdf
+// Description:
+//  Implements an FFT with Mix Radix(2/2^2), Decimation in Frequency
+//  and Single Delay Feedback architecture.
+//
+//  ac_fft_dif_r2m2p2_sdf is a C++ wrapper around a generic C++ Core class
+//  ac_fft_dif_r2m2p2_sdf_core. The core class instantiates stages as objects
+//  of the class ac_fft_dif_r2m2p2_sdf_stage. Stages are implemented to
+//  behave in Single Delay Feedback structure cascaded in such manner that, it can
+//  work for any FFT-Points of 2^n where value of n = 1,2 .. 12.
+//  Scaling factor is used to scale down stage output by 1/2 to avoid overflow
+//
+// Nomenclature:
+//       ac_fft_dif_r2m2p2_sdf
+//               |   |      |
+//               |   |      ----- Single Delay Feedback
+//               |   ------------ 2 mix 2^2
+//               ---------------- Decimation in Frequency
+//
+// Order of Input/Output:
+//  Input  -- Natural
+//  Output -- Bit reversed
+//
+//
+// Configuration Parameters:
+//
+// * @tparam N_FFT           unsigned: Number of FFT points
+// * @tparam MEM_TH          integer: Memory threshold     
+// * @tparam TWIDDLE_PREC    integer: Twiddle bitwidth
+// * @tparam DIF_DO_P         integer: I/O bitiwdth 
+// * @tparam DIF_DO_I         integer: I/O integer width 
 //----------------------------------------------------------------------------------
 
 template<unsigned N_FFT, int MEM_TH, int TWID_PREC, int DIF_D0_P, int DIF_D0_I>

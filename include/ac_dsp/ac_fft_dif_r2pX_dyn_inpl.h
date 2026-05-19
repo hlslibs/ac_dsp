@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 2026.1                                              *
+ *  Software Version: 2026.2                                              *
  *                                                                        *
- *  Release Date    : Wed Mar 11 20:43:09 PDT 2026                        *
+ *  Release Date    : Tue May 12 21:12:18 PDT 2026                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 2026.1.1                                            *
+ *  Release Build   : 2026.2.0                                            *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -710,9 +710,41 @@ private:
 };
 
 //==================================================================================
-// Class: ac_fft_dif_r2pX_dyn_inpl
+// HDIP: ac_fft_dif_r2pX_dyn_inpl
 // Description:
-// Top-level class of design, instantiated by testbench.
+//  This FFT implements a Radix-2^x, DIF architecture where the number of FFT points can be dynamically 
+//  programmed.
+//  The ac_fft_dif_r2pX_dyn_inpl class serves as a C++ interface to the core class. The
+//  ac_fft_dif_r2pX_dyn_inpl_core class is generic and intended to work well even with SystemC
+//  implementations in addition to the supplied C++ implementation. The core class
+//  instantiates the butterfly as an object of the 'ac_fft_dif_r2pX_dyn_inpl_butterfly' class,
+//  handles computation of the FFT Flow Graph and also fetches and writes data.
+//  The butterfly class implements the Radix-engine compromise, and the output of it is
+//  hard-coded to scale-down by half.
+//
+// Nomenclature:
+//       ac_fft_dif_r2pX_dyn_inpl
+//               |   |   |    |
+//               |   |   |    --- In-place Architecture
+//               |   |   -------- Dynamic
+//               |   ------------ Radix-2^x
+//               ---------------- Decimation in Frequency
+//
+// Order of Input/Output:
+//  Input  -- Natural
+//  Output -- ORDER = 0 --> Bit reversed output
+//                  = 1 --> Natural output
+//
+//
+// Configuration Parameters:
+//
+// * @tparam N_FFT           unsigned: Number of FFT points 
+// * @tparam RADIX          integer: Radix 
+// * @tparam ORDER           integer: Order of Input/Output     
+// * @tparam TWIDDLE_PREC    integer: Twiddle bitwidth
+// * @tparam DIF_D_P         integer: I/O bitiwdth 
+// * @tparam DIF_D_I         integer: I/O integer width 
+
 // HLS Interface: run()
 //----------------------------------------------------------------------------------
 

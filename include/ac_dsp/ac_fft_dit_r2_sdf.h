@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 2026.1                                              *
+ *  Software Version: 2026.2                                              *
  *                                                                        *
- *  Release Date    : Wed Mar 11 20:43:09 PDT 2026                        *
+ *  Release Date    : Tue May 12 21:12:18 PDT 2026                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 2026.1.1                                            *
+ *  Release Build   : 2026.2.0                                            *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -373,10 +373,33 @@ private:
 };
 
 //==================================================================================
-// Class: ac_fft_dit_r2_sdf
+// HDIP: ac_fft_dit_r2_sdf
 // Description:
-// Top-level class of design, instantiated by testbench.
-// HLS Interface: run()
+//  The ac_fft_dit_r2_sdf class serves as a C++ interface to the core class. The
+//  ac_fft_dit_r2_sdf_core class is generic and intended to work well even with SystemC
+//  implementations in addition to the supplied C++ implementation. The core class
+//  instantiates delay stages as an objects of the 'ac_fft_dit_r2_sdf_stage' class.
+//  The stages are implemented as a cascaded Single Feedback structure.
+//
+// Nomenclature:
+//       ac_fft_dit_r2_sdf
+//               |   |   |
+//               |   |   -------- Single Delay Feedback
+//               |   ------------ Radix-2
+//               ---------------- Decimation in Time
+//
+// Order of Input/Output:
+//  Input  -- Bit reversed
+//  Output -- Natural
+//
+//
+// Configuration Parameters:
+//
+// * @tparam N_FFT           unsigned: Number of FFT points 
+// * @tparam MEM_TH          integer: Memory threshold
+// * @tparam TWIDDLE_PREC    integer: Twiddle bitwidth
+// * @tparam DIF_D_P         integer: I/O bitiwdth 
+// * @tparam DIF_D_I         integer: I/O integer width 
 //----------------------------------------------------------------------------------
 
 template <unsigned N_FFT, int MEM_TH, int TWID_PREC, int DIT_D0_P, int DIT_D0_I>

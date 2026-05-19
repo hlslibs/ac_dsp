@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 2026.1                                              *
+ *  Software Version: 2026.2                                              *
  *                                                                        *
- *  Release Date    : Wed Mar 11 20:43:09 PDT 2026                        *
+ *  Release Date    : Tue May 12 21:12:18 PDT 2026                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 2026.1.1                                            *
+ *  Release Build   : 2026.2.0                                            *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -129,7 +129,23 @@ private: // Data
 };
 
 //===============================================================================================================
-// Class: ac_mv_avg
+// HDIP: ac_mv_avg
+// Description:
+// filter is designed by using class based approach. This file is C wrapper over
+// core functionality of the filter. Member function of the class run()
+// is the top function for the C++ design Core classes of the filter is in
+// "ac_mv_avg_core.h" and can be used by C++ and SystemC wrapper.
+//
+// Configuration Parameters:
+//
+// * @tparam MAX_SAMPLE       integer: Max number of samples
+// * @tparam TAPS       integer: Number of TAPS
+// * @tparam WIN_TYPE       integer: AC Window Mode
+// * @tparam IN_TYPE          input data type 
+// * @tparam OUT_TYPE         output data type 
+// * @tparam ACC_TYPE         accumulator data type 
+// * @tparam COEFF_TYPE         coefficient data type 
+// * @tparam S_TYPE         Sample data type 
 //---------------------------------------------------------------------------------------------------------------
 
 template < int MAX_SAMPLE, int TAPS, ac_window_mode WIN_TYPE, class IN_TYPE, class OUT_TYPE, class ACC_TYPE, class COEFF_TYPE, class S_TYPE >

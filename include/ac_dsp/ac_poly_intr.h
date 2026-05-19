@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 2026.1                                              *
+ *  Software Version: 2026.2                                              *
  *                                                                        *
- *  Release Date    : Wed Mar 11 20:43:09 PDT 2026                        *
+ *  Release Date    : Tue May 12 21:12:18 PDT 2026                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 2026.1.1                                            *
+ *  Release Build   : 2026.2.0                                            *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -262,8 +262,23 @@ public: // Functions
 #include <mc_scverify.h>
 
 //===================================================================================================================
-// Class: ac_poly_intr
-// Description: This class contains the top function for the polyphase interpolator filter ('run()'). 
+// HDIP: ac_poly_intr
+// Description:
+//    This filter is designed using class based hierarchy. The member function "run()" contained in the
+//    ac_poly_intr class is the top function for the C++ design.
+// Configuration Parameters:
+//
+
+// * @tparam IN_TYPE          input data type 
+// * @tparam COEFF_TYPE         coefficient data type 
+// * @tparam ACC_TYPE         accumulator data type
+// * @tparam OUT_TYPE         output data type 
+// * @tparam STR_CTRL_TYPE    ctrl channel
+// * @tparam STR_COEFF_TYPE         coefficient channel
+// * @tparam NTAPS       integer: Number of TAPS
+// * @tparam COEFFSZ       
+// * @tparam IF        
+// * @tparam ftype       
 //-------------------------------------------------------------------------------------------------------------------
 template < class IN_TYPE, class COEFF_TYPE, class ACC_TYPE, class OUT_TYPE, class STR_CTRL_TYPE, class STR_COEFF_TYPE, int NTAPS, int COEFFSZ, int IF, FTYPE ftype >
 class ac_poly_intr

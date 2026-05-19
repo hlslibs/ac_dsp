@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 2026.1                                              *
+ *  Software Version: 2026.2                                              *
  *                                                                        *
- *  Release Date    : Wed Mar 11 20:43:09 PDT 2026                        *
+ *  Release Date    : Tue May 12 21:12:18 PDT 2026                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 2026.1.1                                            *
+ *  Release Build   : 2026.2.0                                            *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -254,8 +254,22 @@ private: // Data
 };
 
 //===================================================================================================================
-// Class: ac_fir_prog_coeffs
-// Description: This class contains the top function for the programmable coefficient FIR filter ('run()'). 
+// HDIP: ac_fir_prog_coeffs
+// Description: 
+// This file contains wrapper classes that implement different architectures of FIR
+// filters. Each top level class calls a different member function of the core
+// class and hence implements a different architecture.
+// The fir_prog_coeffs_core is core class of the filter and has filter functions
+// definitions.
+//
+// Configuration Parameters:
+//
+// * @tparam IN_TYPE          input data type 
+// * @tparam OUT_TYPE         output data type 
+// * @tparam COEFF_TYPE    coeff data type 
+// * @tparam ACC_TYPE         accumulator data type 
+// * @tparam N_TAPS         unsigned: Number of taps
+// * @tparam ftype         ftype
 //-------------------------------------------------------------------------------------------------------------------
 
 template < class IN_TYPE, class OUT_TYPE, class COEFF_TYPE, class ACC_TYPE, int N_TAPS, FTYPE ftype = SHIFT_REG >

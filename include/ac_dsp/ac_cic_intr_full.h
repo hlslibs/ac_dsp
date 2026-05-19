@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 2026.1                                              *
+ *  Software Version: 2026.2                                              *
  *                                                                        *
- *  Release Date    : Wed Mar 11 20:43:09 PDT 2026                        *
+ *  Release Date    : Tue May 12 21:12:18 PDT 2026                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 2026.1.1                                            *
+ *  Release Build   : 2026.2.0                                            *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -30,7 +30,7 @@
  *************************************************************************/
 //*********************************************************************************************************
 //
-// File: ac_cic_intr_full.h
+// File : ac_cic_intr_full.h
 //
 // Description:
 //    The ac_cic_intr_full class serves as a C++ interface to the core integrator and differentiator chain
@@ -127,11 +127,20 @@ struct find_inter_type_cic_intr {
 };
 
 //=============================================================================================================
-// Class: ac_cic_dec_full
+// HDIP: ac_cic_intr_full
 // Description: This class contains the run() function, as well as, integrator and differentiator functions for
 // interpolation and decimation respectively. When all the stages of the filters have same precision,
 // HW utilization can be achieved by partially unrolling low rate differentiator loop to allow adders
 // to be reused without degrading the throughput.
+//
+// Configuration Parameters:
+//
+// * @tparam IN_TYPE     data type of input
+// * @tparam OUT_TYPE     data type of output
+// * @tparam R_     unsigned: Rate Change Factor
+// * @tparam M_     unsigned: Differential Delay 
+// * @tparam N_     unsigned: Number of Stages 
+
 //-------------------------------------------------------------------------------------------------------------
 
 template < class IN_TYPE, class OUT_TYPE, unsigned R_, unsigned M_, unsigned N_ >

@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 2026.1                                              *
+ *  Software Version: 2026.2                                              *
  *                                                                        *
- *  Release Date    : Wed Mar 11 20:43:09 PDT 2026                        *
+ *  Release Date    : Tue May 12 21:12:18 PDT 2026                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 2026.1.1                                            *
+ *  Release Build   : 2026.2.0                                            *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -291,9 +291,23 @@ typedef enum { SHIFT_REG, ROTATE_SHIFT, C_BUFF, FOLD_EVEN, FOLD_ODD, TRANSPOSED,
 #include <mc_scverify.h>
 
 //===================================================================================================================
-// Class : ac_fir_load_coeffs
+// HDIP : ac_fir_load_coeffs
 // Description:
-//   This class contains the top function for the loadable coefficients FIR filter ('run()').
+//    This file contains the C++ interface to the core FIR class, as well as the core FIR class which
+//    contains the core functionality of the filter. The member function "run()" contained in the
+//    ac_fir_load_coeffs class is the top level function for the C++ design. The core class is generic,
+//    and can be used by both the supplied C++ implementation as well as any other SystemC implementations
+//    the user might want to use.
+//
+//
+// Configuration Parameters:
+//
+// * @tparam IN_TYPE          input data type 
+// * @tparam OUT_TYPE         output data type 
+// * @tparam COEFF_TYPE    coeff data type 
+// * @tparam ACC_TYPE         accumulator data type 
+// * @tparam N_TAPS         unsigned: Number of taps
+// * @tparam ftype         ftype
 //-------------------------------------------------------------------------------------------------------------------
 
 // Top level class for the Shift register implementation

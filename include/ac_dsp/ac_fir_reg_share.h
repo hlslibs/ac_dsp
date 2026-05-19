@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 2026.1                                              *
+ *  Software Version: 2026.2                                              *
  *                                                                        *
- *  Release Date    : Wed Mar 11 20:43:09 PDT 2026                        *
+ *  Release Date    : Tue May 12 21:12:18 PDT 2026                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 2026.1.1                                            *
+ *  Release Build   : 2026.2.0                                            *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -250,8 +250,24 @@ public:
 #include <mc_scverify.h>
 
 //===================================================================================================================
-// Class: ac_fir_reg_share
-// Description: This class contains the top function for the register share filter ('run()'). 
+// HDIP: ac_fir_reg_share
+// Description:
+// 		This file contains wrapper classes that implement different architectures of FIR
+// 		filters. Each top level class calls a different member function of the core
+// 		class and hence implements a different architecture.
+// 		The fir_reg_share_core is core class of the filter and has filter functions
+// 		definitions
+//
+// Configuration Parameters:
+//
+// * @tparam IN_TYPE          input data type 
+// * @tparam OUT_TYPE         output data type 
+// * @tparam COEFF_TYPE    coeff data type 
+// * @tparam ACC_TYPE         accumulator data type 
+// * @tparam MEM_WORD_WIDTH         integer: Memory word width
+// * @tparam BLK_SZ         integer: Block size
+// * @tparam BLK_OFFSET         integer: Block offset
+// * @tparam ftype         ftype
 //-------------------------------------------------------------------------------------------------------------------
 
 template < int N_TAPS = 2, class IN_TYPE = DEFAULT_TYPE, class OUT_TYPE = DEFAULT_TYPE, class COEFF_TYPE = DEFAULT_TYPE, class ACC_TYPE = DEFAULT_TYPE, int MEM_WORD_WIDTH = 1, int BLK_SZ = 1, int BLK_OFFSET = 0,FTYPE ftype = SHIFT_REG >
