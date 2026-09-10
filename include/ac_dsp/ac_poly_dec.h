@@ -2,11 +2,11 @@
  *                                                                        *
  *  Algorithmic C (tm) DSP Library                                        *
  *                                                                        *
- *  Software Version: 2026.2                                              *
+ *  Software Version: 2026.3                                              *
  *                                                                        *
- *  Release Date    : Tue Jun 30 15:04:14 PDT 2026                        *
+ *  Release Date    : Wed Sep  2 19:55:19 PDT 2026                        *
  *  Release Type    : Production Release                                  *
- *  Release Build   : 2026.2.1                                            *
+ *  Release Build   : 2026.3.0                                            *
  *                                                                        *
  *  Copyright 2018 Siemens                                                *
  *                                                                        *
@@ -78,14 +78,11 @@
 
 //===================================================================================================================
 // HDIP: ac_poly_dec
-// Description: 
-// Description:
-//    This filter is designed using class based hierarchy. The member function "run()" contained in the
+// Description: This filter is designed using class based hierarchy. The member function "run()" contained in the
 //    ac_poly_dec class is the top function for the C++ design. 
 //
 // Configuration Parameters:
 //
-
 // * @tparam IN_TYPE          input data type 
 // * @tparam COEFF_TYPE         coefficient data type 
 // * @tparam STR_COEFF_TYPE         coefficient data type 
