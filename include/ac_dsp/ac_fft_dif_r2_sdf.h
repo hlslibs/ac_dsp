@@ -299,7 +299,7 @@ public:
   void fftDifR2SdfCore(const dif_complex &input, dif_complex &output) {
     bool stage_init = false;
 
-#include "twiddles_20bits.h"
+#include "twiddles_64bits.h"
 
     dif_complex temp_11, temp_10, temp_9, temp_8, temp_7, temp_6, temp_5, temp_4, temp_3, temp_2, temp_1, temp_0;
 

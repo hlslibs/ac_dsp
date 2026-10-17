@@ -290,7 +290,7 @@ public:
   // stages per function call.
   //
   void fftDitR2SdfCore(const dit_complex &input, dit_complex &output) {
-#include "twiddles_20bits.h"
+#include "twiddles_64bits.h"
 
     dit_complex temp_11, temp_10, temp_9, temp_8, temp_7, temp_6, temp_5, temp_4, temp_3, temp_2, temp_1, temp_0;
 

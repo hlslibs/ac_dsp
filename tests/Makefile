@@ -36,7 +36,10 @@ SOURCES_CPP = \
   rtest_ac_cic_dec_full.cpp \
   rtest_ac_cic_intr_full.cpp
 
-OBJS = $(SOURCES_CPP:.cpp=.o)
+FFT_R2_OBJS = rtest_ac_fft_r2_dit_inpl.o rtest_ac_fft_r2_dif_inpl.o \
+  rtest_ac_fft_r2_dit_sdf.o rtest_ac_fft_r2_dif_sdf.o
+
+OBJS = $(SOURCES_CPP:.cpp=.o) $(FFT_R2_OBJS)
 
 GCOVDAT = $(SOURCES_CPP:.cpp=.gcda) $(SOURCES_CPP:.cpp=.gcno) $(SOURCES_CPP:.cpp=.o.base.info) $(SOURCES_CPP:.cpp=.o.test.info) $(SOURCES_CPP:.cpp=.o.total.info) $(SOURCES_CPP:.cpp=.o.filt.info) 
 
@@ -64,6 +67,18 @@ ifeq "$(GCOV_ENABLED)" "true"
 endif
 
 all: $(OBJS)
+
+# Compile each FFT architecture separately because the twiddle tables are local
+# to each core and have include guards.
+rtest_ac_fft_r2_dif_inpl.o: FFT_R2_FLAGS = -DTEST_DIF
+rtest_ac_fft_r2_dit_sdf.o: FFT_R2_FLAGS = -DTEST_SDF
+rtest_ac_fft_r2_dif_sdf.o: FFT_R2_FLAGS = -DTEST_DIF -DTEST_SDF
+
+$(FFT_R2_OBJS): rtest_ac_fft_r2_%.o: rtest_ac_fft_r2.cpp
+	-@$(ECHO) "------------------------------ Compile  $@ ----------------------------------"
+	@$(GCC_EXEC) $(CXXFLAGS) $(FFT_R2_FLAGS) -I$(AC_TYPES_INC) -I$(AC_MATH_INC) $< $(LDFLAGS) $(LINK_LIBNAMES) -o $@ $(DIE)
+	-@$(ECHO) "------------------------------ Running  $@ ----------------------------------"
+	@./$@ $(DIE)
 
 .PHONY: clean
 clean:

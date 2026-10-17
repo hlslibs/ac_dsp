@@ -135,17 +135,12 @@ using namespace std;
 template < class fix_p, class com_p, class complex_round, class com_rnd_ext, class com_mult, class com_tw >
 class ac_fft_dit_r2_inpl_butterfly
 {
-private:
-  // Typedefs for public function args declared first, to avoid compile-time errors.
-  typedef ac_fixed < 20, 2, true, AC_RND > fxpt;
-  typedef ac_complex < fxpt > comx_tw;
-
 public:
   //-------------------------------------------------------------------------
   // Member Function: compute
   // Description: Compute FFT butterfly call
   //
-  void compute(com_p &x, com_p &y, const comx_tw w) {
+  void compute(com_p &x, com_p &y, const com_tw w) {
     com_rnd_ext xt, yt;
     com_tw tw;
     xt = x;
@@ -218,7 +213,7 @@ public:
   // of class, called by external design.
   //
   void fftDitR2InplCore(cx_dType bank_2[N_FFT / 2], cx_dType bank_1[N_FFT / 2]) {
-#include "twiddles_20bits.h"
+#include "twiddles_64bits.h"
 
     const int FFT_STAGES = ac::log2_ceil < N_FFT >::val;
 

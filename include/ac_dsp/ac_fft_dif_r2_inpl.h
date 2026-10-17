@@ -207,7 +207,7 @@ public:
   //
   void fftDifR2InplCore(cx_dType bank_2[N_FFT / 2], cx_dType bank_1[N_FFT / 2]) {
 
-#include "twiddles_20bits.h"
+#include "twiddles_64bits.h"
 
     const int FFT_STAGES = ac::log2_ceil < N_FFT >::val;
 
