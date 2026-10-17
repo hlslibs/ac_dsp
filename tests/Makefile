@@ -34,7 +34,8 @@ SOURCES_CPP = \
   rtest_ac_fir_load_coeffs.cpp \
   rtest_ac_fir_prog_coeffs.cpp \
   rtest_ac_cic_dec_full.cpp \
-  rtest_ac_cic_intr_full.cpp
+  rtest_ac_cic_intr_full.cpp \
+  rtest_ac_poly_intr.cpp
 
 OBJS = $(SOURCES_CPP:.cpp=.o)
 
