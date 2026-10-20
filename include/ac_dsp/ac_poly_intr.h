@@ -137,13 +137,11 @@ public: // Functions
       acc = 0.0;
 #pragma hls_unroll
       MAC_E: for (int i = (NTAPS / 2) - 1; i >= 0; i--) {
-        IN_TYPE tp;
         if (sign[j]) {                                      // sign specifies whether filter is symmetric or anti-symmetric
-          tp = taps[NTAPS - 1 - i];
+          fold = (taps[i] + taps[NTAPS - 1 - i]);
         } else {
-          tp = -taps[NTAPS - 1 - i];
+          fold = (taps[i] - taps[NTAPS - 1 - i]);
         }
-        fold = (taps[i] + tp);                             // fold the input for symmetry
         acc += coeffs[i + j * NTAPS / 2] * fold;
       }
       ACC_TYPE t1, t2;
@@ -193,13 +191,11 @@ public: // Functions
         if (i == (NTAPS - 1) / 2) {
           fold = taps[i]; // Central tap passes through for odd symmetric*/
         } else {
-          IN_TYPE tp;
           if (sign[j]) {                                   // sign specifies whether filter is symmetric or anti-symmetric
-            tp = taps[NTAPS - 1 - i];
+            fold = (taps[i] + taps[NTAPS - 1 - i]);
           } else {
-            tp = -taps[NTAPS - 1 - i];
+            fold = (taps[i] - taps[NTAPS - 1 - i]);
           }
-          fold = (taps[i] + tp);  // fold the input for symmetry
         }
         acc += coeffs[i + (NTAPS / 2 + 1) * j] * fold;
       }
